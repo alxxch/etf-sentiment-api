@@ -5,6 +5,6 @@ void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const EtfSentimentApp());
     expect(find.text('MARKET SENTIMENT'), findsOneWidget);
-    expect(find.text('VWCE.DE'), findsOneWidget);
+    expect(find.text('ETF Dashboard'), findsOneWidget);
   });
 }

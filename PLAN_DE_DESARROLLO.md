@@ -100,16 +100,16 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 4: Integración y Gestión de Estado (Día 5)
 **Objetivo:** Conectar Flutter con FastAPI de forma reactiva.
 
-- [ ] 4.1 Servicio HTTP (`services/api_service.dart`):
-  - [ ] Función `fetchEtfData(String ticker)` que haga GET a `http://localhost:8000/api/v1/sentiment/{ticker}`.
-- [ ] 4.2 Configurar Provider (`providers/etf_provider.dart`):
-  - [ ] Estado de carga (`isLoading`).
-  - [ ] Manejo de errores (`errorMessage`).
-  - [ ] Lista o Mapa de `EtfData`.
-  - [ ] Método `loadData()` que itere sobre los 3 tickers (`VWCE.DE`, `EUNL.DE`, `8PSG.DE`) y llame a la API.
-- [ ] 4.3 Conectar UI al Provider:
-  - [ ] Envolver `MyApp` en `ChangeNotifierProvider`.
-  - [ ] Actualizar `HomeScreen` para usar `Consumer<EtfProvider>` mostrando un *spinner* mientras carga, y los datos reales al terminar.
+- [x] 4.1 Servicio HTTP (`services/api_service.dart`):
+  - [x] Función `fetchEtfData(String ticker)` que haga GET a `http://localhost:8000/api/v1/sentiment/{ticker}`.
+- [x] 4.2 Configurar Provider (`providers/etf_provider.dart`):
+  - [x] Estado de carga (`isLoading`).
+  - [x] Manejo de errores (`errorMessage`).
+  - [x] Lista o Mapa de `EtfData`.
+  - [x] Método `loadData()` que itere sobre los 3 tickers (`VWCE.DE`, `EUNL.DE`, `8PSG.DE`) y llame a la API.
+- [x] 4.3 Conectar UI al Provider:
+  - [x] Envolver `MyApp` en `ChangeNotifierProvider`.
+  - [x] Actualizar `HomeScreen` para usar `Consumer<EtfProvider>` mostrando un *spinner* mientras carga, y los datos reales al terminar.
 
 ### Fase 5: Integración de Audio con ElevenLabs - v1.5 (Día 6)
 **Objetivo:** Incorporar la síntesis de voz (Flash Briefing).
