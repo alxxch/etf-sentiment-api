@@ -61,14 +61,14 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Crear función `get_ticker_data(ticker_symbol)` usando `yfinance`.
   - [x] Extraer: Precio actual y Porcentaje de cambio diario.
   - [x] Extraer: Lista de las últimas 5 noticias/titulares del ticker.
-- [ ] 2.2 Módulo de Inteligencia Artificial (`ai_service.py`):
-  - [ ] Crear prompt estricto: *"Analiza estos titulares. Devuelve SOLO un JSON con formato `{"sentiment_score": Int (0-100), "ai_summary": "String corto"}`"*.
-  - [ ] Crear función `analyze_sentiment(news_list)` que llame a Gemini y parsee el JSON de respuesta.
-- [ ] 2.3 API REST (`main.py`):
-  - [ ] Inicializar app FastAPI.
-  - [ ] Crear endpoint GET `/api/v1/sentiment/{ticker}`.
-  - [ ] Orquestar la lógica en el endpoint: llamar a `scraper.py` -> pasar noticias a `ai_service.py` -> unificar datos.
-  - [ ] Retornar el esquema JSON acordado.
+- [x] 2.2 Módulo de Inteligencia Artificial (`ai_service.py`):
+  - [x] Crear prompt estricto: *"Analiza estos titulares. Devuelve SOLO un JSON con formato `{"sentiment_score": Int (0-100), "ai_summary": "String corto"}`"*.
+  - [x] Crear función `analyze_sentiment(news_list)` que llame a Gemini y parsee el JSON de respuesta.
+- [x] 2.3 API REST (`main.py`):
+  - [x] Inicializar app FastAPI.
+  - [x] Crear endpoint GET `/api/v1/sentiment/{ticker}`.
+  - [x] Orquestar la lógica en el endpoint: llamar a `scraper.py` -> pasar noticias a `ai_service.py` -> unificar datos.
+  - [x] Retornar el esquema JSON acordado.
 - [ ] 2.4 Pruebas del Backend.
   - [ ] Levantar servidor: `uvicorn main:app --reload`.
   - [ ] Probar en `http://localhost:8000/docs` con el ticker `VWCE.DE`.
