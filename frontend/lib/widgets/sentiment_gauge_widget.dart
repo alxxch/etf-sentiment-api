@@ -25,6 +25,7 @@ class SentimentGaugeWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clampedScore = score.clamp(0, 100);
+    final activeColor = _getScoreColor(clampedScore.toDouble());
 
     return Container(
       width: double.infinity,
@@ -52,16 +53,21 @@ class SentimentGaugeWidget extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
                 decoration: BoxDecoration(
-                  color: _getScoreColor(clampedScore.toDouble()).withValues(alpha: 0.15),
+                  color: activeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(
+                    color: activeColor.withValues(alpha: 0.3),
+                    width: 0.8,
+                  ),
                 ),
                 child: Text(
                   _getScoreLabel(clampedScore),
                   style: TextStyle(
-                    color: _getScoreColor(clampedScore.toDouble()),
+                    color: activeColor,
                     fontSize: 11.0,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
@@ -71,19 +77,22 @@ class SentimentGaugeWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24.0),
+          // Animación implícita que llena el medidor radial suavemente al cargar el dato
           TweenAnimationBuilder<double>(
+            key: ValueKey(clampedScore),
             tween: Tween<double>(begin: 0.0, end: clampedScore.toDouble()),
-            duration: const Duration(milliseconds: 900),
+            duration: const Duration(milliseconds: 1100),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) {
-              final activeColor = _getScoreColor(value);
+              final dynamicColor = _getScoreColor(value);
+
               return SizedBox(
-                height: 180.0,
-                width: 220.0,
+                height: 184.0,
+                width: 224.0,
                 child: CustomPaint(
                   painter: _GaugePainter(
                     score: value,
-                    activeColor: activeColor,
+                    activeColor: dynamicColor,
                   ),
                   child: Center(
                     child: Column(
@@ -94,9 +103,9 @@ class SentimentGaugeWidget extends StatelessWidget {
                           value.toInt().toString(),
                           style: const TextStyle(
                             color: AppColors.textPrimary,
-                            fontSize: 48.0,
+                            fontSize: 50.0,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -1.5,
+                            letterSpacing: -1.8,
                           ),
                         ),
                         const Text(
@@ -115,7 +124,7 @@ class SentimentGaugeWidget extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 10.0),
+          const SizedBox(height: 12.0),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -169,7 +178,7 @@ class _GaugePainter extends CustomPainter {
     const startAngle = 150 * (math.pi / 180);
     const sweepAngle = 240 * (math.pi / 180);
 
-    // Track de fondo
+    // Track de fondo con estilo Apple Watch / iOS
     final backgroundPaint = Paint()
       ..color = AppColors.surfaceSecondary
       ..style = PaintingStyle.stroke
@@ -184,9 +193,26 @@ class _GaugePainter extends CustomPainter {
       backgroundPaint,
     );
 
-    // Arco activo
+    // Arco activo animado
     final progressSweep = (score / 100.0) * sweepAngle;
     if (progressSweep > 0) {
+      // Brillo sutil (Glow)
+      final glowPaint = Paint()
+        ..color = activeColor.withValues(alpha: 0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 18.0
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        progressSweep,
+        false,
+        glowPaint,
+      );
+
+      // Trazo principal nítido
       final activePaint = Paint()
         ..color = activeColor
         ..style = PaintingStyle.stroke
@@ -200,6 +226,17 @@ class _GaugePainter extends CustomPainter {
         false,
         activePaint,
       );
+
+      // Puntero / Punto terminal al final del arco
+      final currentAngle = startAngle + progressSweep;
+      final tipX = center.dx + radius * math.cos(currentAngle);
+      final tipY = center.dy + radius * math.sin(currentAngle);
+
+      final tipPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(Offset(tipX, tipY), 3.5, tipPaint);
     }
   }
 

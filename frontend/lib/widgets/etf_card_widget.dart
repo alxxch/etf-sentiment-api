@@ -32,7 +32,7 @@ class EtfCardWidget extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,12 +41,12 @@ class EtfCardWidget extends StatelessWidget {
                     data.ticker,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 26.0,
+                      fontSize: 28.0,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                      letterSpacing: -0.6,
                     ),
                   ),
-                  const SizedBox(height: 2.0),
+                  const SizedBox(height: 3.0),
                   Text(
                     _getSubtitle(data.ticker),
                     style: const TextStyle(
@@ -57,12 +57,17 @@ class EtfCardWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              // Badge de variación porcentual estilo Apple Finance
-              Container(
+              // Badge de variación porcentual con animación implícita
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
                 decoration: BoxDecoration(
                   color: changeBgColor,
                   borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(
+                    color: changeColor.withValues(alpha: 0.25),
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -86,21 +91,30 @@ class EtfCardWidget extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20.0),
+          const SizedBox(height: 22.0),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(
-                data.currentPrice.toStringAsFixed(2),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 38.0,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.0,
-                ),
+              // Contador numérico suave con TweenAnimationBuilder
+              TweenAnimationBuilder<double>(
+                key: ValueKey('${data.ticker}_${data.currentPrice}'),
+                tween: Tween<double>(begin: 0.0, end: data.currentPrice),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOutCubic,
+                builder: (context, val, child) {
+                  return Text(
+                    val.toStringAsFixed(2),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 40.0,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.2,
+                    ),
+                  );
+                },
               ),
-              const SizedBox(width: 6.0),
+              const SizedBox(width: 8.0),
               Text(
                 data.currency,
                 style: const TextStyle(

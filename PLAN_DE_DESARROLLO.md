@@ -126,15 +126,15 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 6: Pulido Final y Exportación para Portfolio (Día 7)
 **Objetivo:** Dejar el proyecto listo para grabar una demo de LinkedIn.
 
-- [ ] 6.1 Manejo de Excepciones (timeouts de IA, falta de noticias).
-  - [ ] ¿Qué pasa si `yfinance` no encuentra noticias? (Fijar un mensaje por defecto).
-  - [ ] ¿Qué pasa si Gemini da timeout? (Manejo de errores en la UI).
-- [ ] 6.2 Pulido de UI/UX (animaciones implícitas y contrastes):
-  - [ ] Añadir animaciones implícitas (`AnimatedContainer`, `TweenAnimationBuilder` para el medidor radial).
-  - [ ] Revisar contrastes y espaciados (Padding estándar de 16px o 24px).
-- [ ] 6.3 Documentación de Portfolio:
-  - [ ] Escribir un `README.md` estelar en el repositorio con Gifs de la app funcionando.
-  - [ ] Grabar video de demostración mostrando la interfaz y reproduciendo el audio del "Flash Briefing".
+- [x] 6.1 Manejo de Excepciones (timeouts de IA, falta de noticias).
+  - [x] ¿Qué pasa si `yfinance` no encuentra noticias? (Fijar un mensaje por defecto).
+  - [x] ¿Qué pasa si Gemini da timeout? (Manejo de errores en la UI).
+- [x] 6.2 Pulido de UI/UX (animaciones implícitas y contrastes):
+  - [x] Añadir animaciones implícitas (`AnimatedContainer`, `TweenAnimationBuilder` para el medidor radial).
+  - [x] Revisar contrastes y espaciados (Padding estándar de 16px o 24px).
+- [x] 6.3 Documentación de Portfolio:
+  - [x] Escribir un `README.md` estelar en el repositorio con Gifs de la app funcionando.
+  - [x] Grabar video de demostración mostrando la interfaz y reproduciendo el audio del "Flash Briefing".
 
   ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*
