@@ -6,6 +6,7 @@ class EtfData {
   final int sentimentScore;
   final String aiSummary;
   final List<String> news;
+  final String? audioBase64;
 
   const EtfData({
     required this.ticker,
@@ -15,6 +16,7 @@ class EtfData {
     required this.sentimentScore,
     required this.aiSummary,
     this.news = const [],
+    this.audioBase64,
   });
 
   factory EtfData.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class EtfData {
               ?.map((e) => e.toString())
               .toList() ??
           const [],
+      audioBase64: json['audio_base64'] as String?,
     );
   }
 
@@ -41,10 +44,13 @@ class EtfData {
       'sentiment_score': sentimentScore,
       'ai_summary': aiSummary,
       'news': news,
+      'audio_base64': audioBase64,
     };
   }
 
   bool get isPositive => changePercent >= 0;
+
+  bool get hasAudio => audioBase64 != null && audioBase64!.trim().isNotEmpty;
 
   String get formattedPrice => '${currentPrice.toStringAsFixed(2)} $currency';
 
@@ -57,7 +63,7 @@ class EtfData {
     return 'Neutral';
   }
 
-  /// Datos simulados (mocks) para previsualización en Fase 3
+  /// Datos simulados (mocks) para previsualización
   static List<EtfData> get mocks => [
         const EtfData(
           ticker: 'VWCE.DE',

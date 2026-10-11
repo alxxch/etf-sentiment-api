@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/etf_provider.dart';
 import 'screens/home_screen.dart';
+import 'services/audio_service.dart';
 import 'theme/app_colors.dart';
 
 void main() {
@@ -19,9 +20,14 @@ void main() {
 }
 
 class EtfSentimentApp extends StatelessWidget {
-  final EtfProvider? provider;
+  final EtfProvider? etfProvider;
+  final AudioService? audioService;
 
-  const EtfSentimentApp({super.key, this.provider});
+  const EtfSentimentApp({
+    super.key,
+    this.etfProvider,
+    this.audioService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,15 +51,21 @@ class EtfSentimentApp extends StatelessWidget {
       home: const HomeScreen(),
     );
 
-    if (provider != null) {
-      return ChangeNotifierProvider<EtfProvider>.value(
-        value: provider!,
-        child: app,
-      );
-    }
-
-    return ChangeNotifierProvider<EtfProvider>(
-      create: (_) => EtfProvider()..fetchInitialData(),
+    return MultiProvider(
+      providers: [
+        if (etfProvider != null)
+          ChangeNotifierProvider<EtfProvider>.value(value: etfProvider!)
+        else
+          ChangeNotifierProvider<EtfProvider>(
+            create: (_) => EtfProvider(),
+          ),
+        if (audioService != null)
+          ChangeNotifierProvider<AudioService>.value(value: audioService!)
+        else
+          ChangeNotifierProvider<AudioService>(
+            create: (_) => AudioService(),
+          ),
+      ],
       child: app,
     );
   }

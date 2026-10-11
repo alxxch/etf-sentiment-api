@@ -17,11 +17,13 @@ class EtfProvider extends ChangeNotifier {
   final Map<String, EtfData> _etfMap = {};
   int _selectedIndex = 0;
   bool _isLoading = false;
+  bool _hasLoaded = false;
   String? _errorMessage;
   DateTime? _lastUpdated;
 
   // Getters de estado
   bool get isLoading => _isLoading;
+  bool get hasLoaded => _hasLoaded;
   String? get errorMessage => _errorMessage;
   DateTime? get lastUpdated => _lastUpdated;
   int get selectedIndex => _selectedIndex;
@@ -53,11 +55,28 @@ class EtfProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Carga inicial de los 3 tickers principales
-  Future<void> fetchInitialData() => loadData();
+  /// Carga inicial protegida contra bucles: solo consulta si la lista está vacía
+  /// y no hay ninguna petición en curso o ya completada.
+  Future<void> fetchInitialData() async {
+    if (_hasLoaded || _isLoading || _etfMap.isNotEmpty) {
+      debugPrint('[EtfProvider] fetchInitialData omitido: datos ya presentes o carga en curso.');
+      return;
+    }
+    await loadData(force: false);
+  }
 
   /// Realiza la consulta a la API de los 3 tickers en paralelo
-  Future<void> loadData() async {
+  Future<void> loadData({bool force = false}) async {
+    // Protección contra peticiones duplicadas o concurrentes
+    if (_isLoading) {
+      debugPrint('[EtfProvider] loadData omitido: petición ya en curso.');
+      return;
+    }
+    if (!force && _hasLoaded && _etfMap.isNotEmpty) {
+      debugPrint('[EtfProvider] loadData omitido: datos ya cargados previamente.');
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -89,6 +108,7 @@ class EtfProvider extends ChangeNotifier {
             'No se pudo obtener información del backend. Verifica que el servidor FastAPI esté corriendo en http://localhost:8000';
       } else {
         _lastUpdated = DateTime.now();
+        _hasLoaded = true;
       }
     } catch (e) {
       _errorMessage = 'Error inesperado al cargar los datos: $e';

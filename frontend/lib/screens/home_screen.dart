@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/etf_data.dart';
 import '../providers/etf_provider.dart';
+import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
 import '../widgets/etf_card_widget.dart';
@@ -23,6 +24,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     final initialIndex = context.read<EtfProvider>().selectedIndex;
     _pageController = PageController(initialPage: initialIndex);
+
+    // Inicialización segura post-frame si la lista de datos está vacía
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<EtfProvider>().fetchInitialData();
+      }
+    });
   }
 
   @override
@@ -33,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSelectTab(int index, EtfProvider provider) {
     if (provider.selectedIndex != index) {
+      context.read<AudioService>().stop();
       provider.selectTickerIndex(index);
       if (_pageController.hasClients) {
         _pageController.animateToPage(
@@ -294,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24.0),
               ElevatedButton.icon(
-                onPressed: () => provider.loadData(),
+                onPressed: () => provider.loadData(force: true),
                 icon: const Icon(Icons.refresh_rounded, size: 18.0),
                 label: const Text('Reintentar conexión'),
                 style: ElevatedButton.styleFrom(
@@ -317,10 +326,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       color: AppColors.bullish,
       backgroundColor: AppColors.cardSurface,
-      onRefresh: () => provider.loadData(),
+      onRefresh: () => provider.loadData(force: true),
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (index) {
+          context.read<AudioService>().stop();
           provider.selectTickerIndex(index);
         },
         itemCount: provider.tickers.length,
@@ -354,8 +364,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16.0),
 
-                // 3. Resumen narrativo generado por Gemini
-                AiSummaryWidget(summary: etf.aiSummary),
+                // 3. Resumen narrativo y Flash Briefing con ElevenLabs TTS
+                AiSummaryWidget(
+                  summary: etf.aiSummary,
+                  audioBase64: etf.audioBase64,
+                  ticker: etf.ticker,
+                ),
 
                 const SizedBox(height: 16.0),
 

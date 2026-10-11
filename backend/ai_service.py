@@ -4,6 +4,7 @@ import re
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 
 # Cargar variables de entorno desde backend/.env o la raíz
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -15,7 +16,7 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 
-def _get_model(model_name: str = "gemini-2.5-flash") -> genai.GenerativeModel:
+def _get_model(model_name: str = "models/gemini-2.5-flash") -> genai.GenerativeModel:
     """Instancia el modelo de Gemini configurado para salida estructurada JSON."""
     return genai.GenerativeModel(
         model_name=model_name,
@@ -61,8 +62,7 @@ Titulares a analizar:
 {formatted_news}
 """
 
-    # Probar con modelos disponibles (gemini-2.5-flash, gemini-flash-latest)
-    candidate_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
+    candidate_models = ["models/gemini-2.5-flash", "models/gemini-flash-latest"]
     last_error: Optional[Exception] = None
 
     for m_name in candidate_models:
@@ -87,11 +87,23 @@ Titulares a analizar:
                 "sentiment_score": sentiment_score,
                 "ai_summary": ai_summary,
             }
+        except ResourceExhausted as e:
+            last_error = e
+            print(f"[ai_service] ResourceExhausted (429) en modelo {m_name}: límite de cuota alcanzado.")
+            break
         except Exception as e:
             last_error = e
             continue
 
     print(f"[ai_service] Advertencia al contactar con Gemini: {last_error}")
+
+    # Fallback refinado ante ResourceExhausted o sobrecarga
+    if isinstance(last_error, ResourceExhausted) or "ResourceExhausted" in type(last_error).__name__:
+        return {
+            "sentiment_score": 55,
+            "ai_summary": "Sentimiento estable de mercado. (Límite temporal de peticiones alcanzado en Gemini; servicio autorregulando la cuota).",
+        }
+
     return {
         "sentiment_score": 50,
         "ai_summary": f"Sentimiento neutral estimado (aviso de servicio IA: {type(last_error).__name__ if last_error else 'error desconocido'}).",

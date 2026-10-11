@@ -114,14 +114,14 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 5: Integración de Audio con ElevenLabs - v1.5 (Día 6)
 **Objetivo:** Incorporar la síntesis de voz (Flash Briefing).
 
-- [ ] 5.1 Backend (`tts_service.py`): 
-  - [ ] Crear función que reciba el resumen de Gemini, llame a ElevenLabs y genere el archivo de audio.
-  - [ ] Actualizar el endpoint de FastAPI para devolver la URL del audio o el buffer en base64 junto con los demás datos.
-- [ ] 5.2 Frontend (`services/audio_service.dart`):
-  - [ ] Configurar `audioplayers` para manejar el stream o el archivo codificado.
-- [ ] 5.3 UI de Reproducción:
-  - [ ] Añadir un botón flotante (FAB) de "Play/Pause" minimalista en la tarjeta de resumen.
-  - [ ] Implementar un pequeño indicador visual animado cuando el audio esté sonando.
+- [x] 5.1 Backend (`tts_service.py`): 
+  - [x] Crear función que reciba el resumen de Gemini, llame a ElevenLabs y genere el archivo de audio.
+  - [x] Actualizar el endpoint de FastAPI para devolver la URL del audio o el buffer en base64 junto con los demás datos.
+- [x] 5.2 Frontend (`services/audio_service.dart`):
+  - [x] Configurar `audioplayers` para manejar el stream o el archivo codificado.
+- [x] 5.3 UI de Reproducción:
+  - [x] Añadir un botón flotante (FAB) de "Play/Pause" minimalista en la tarjeta de resumen.
+  - [x] Implementar un pequeño indicador visual animado cuando el audio esté sonando.
 
 ### Fase 6: Pulido Final y Exportación para Portfolio (Día 7)
 **Objetivo:** Dejar el proyecto listo para grabar una demo de LinkedIn.
