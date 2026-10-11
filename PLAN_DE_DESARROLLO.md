@@ -76,26 +76,26 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 3: Frontend Core - Flutter UI (Día 3-4)
 **Objetivo:** Interfaz gráfica estática (usando datos mockeados) con el estilo visual acordado.
 
-- [ ] 3.1 Estructura de carpetas en `lib/`:
-  - [ ] `/models` (Clases de datos).
-  - [ ] `/services` (Llamadas HTTP).
-  - [ ] `/providers` (Gestión de estado).
-  - [ ] `/screens` (Pantallas).
-  - [ ] `/widgets` (Componentes reutilizables).
-  - [ ] `/theme` (Colores y tipografía).
-- [ ] 3.2 Definir Tema (`theme/app_colors.dart`):
-  - [ ] Background: `Color(0xFF000000)`
-  - [ ] Card/Surface: `Color(0xFF1C1C1E)`
-  - [ ] Bullish (Alcista): `Color(0xFF30D158)`
-  - [ ] Bearish (Bajista): `Color(0xFFFF453A)`
-- [ ] 3.3 Crear Modelo de Datos (`models/etf_data.dart`):
-  - [ ] Crear clase `EtfData` con el método `fromJson` basado en el contrato del backend.
-- [ ] 3.4 Construir Widgets UI (Mockeados):
-  - [ ] `EtfCardWidget`: Tarjeta que muestra Ticker, Precio y Variación (con color condicional).
-  - [ ] `SentimentGaugeWidget`: Medidor radial (puedes usar un `CircularProgressIndicator` personalizado o un `CustomPainter`) del 0 al 100.
-  - [ ] `AiSummaryWidget`: Tarjeta de texto para el resumen de Gemini.
-- [ ] 3.5 Ensamblar Pantalla Principal (`screens/home_screen.dart`):
-  - [ ] Unir los widgets en un `ListView` o `PageView` para navegar entre los 3 tickers.
+- [x] 3.1 Estructura de carpetas en `lib/`:
+  - [x] `/models` (Clases de datos).
+  - [x] `/services` (Llamadas HTTP).
+  - [x] `/providers` (Gestión de estado).
+  - [x] `/screens` (Pantallas).
+  - [x] `/widgets` (Componentes reutilizables).
+  - [x] `/theme` (Colores y tipografía).
+- [x] 3.2 Definir Tema (`theme/app_colors.dart`):
+  - [x] Background: `Color(0xFF000000)`
+  - [x] Card/Surface: `Color(0xFF1C1C1E)`
+  - [x] Bullish (Alcista): `Color(0xFF30D158)`
+  - [x] Bearish (Bajista): `Color(0xFFFF453A)`
+- [x] 3.3 Crear Modelo de Datos (`models/etf_data.dart`):
+  - [x] Crear clase `EtfData` con el método `fromJson` basado en el contrato del backend.
+- [x] 3.4 Construir Widgets UI (Mockeados):
+  - [x] `EtfCardWidget`: Tarjeta que muestra Ticker, Precio y Variación (con color condicional).
+  - [x] `SentimentGaugeWidget`: Medidor radial (puedes usar un `CircularProgressIndicator` personalizado o un `CustomPainter`) del 0 al 100.
+  - [x] `AiSummaryWidget`: Tarjeta de texto para el resumen de Gemini.
+- [x] 3.5 Ensamblar Pantalla Principal (`screens/home_screen.dart`):
+  - [x] Unir los widgets en un `ListView` o `PageView` para navegar entre los 3 tickers.
 
 ### Fase 4: Integración y Gestión de Estado (Día 5)
 **Objetivo:** Conectar Flutter con FastAPI de forma reactiva.
