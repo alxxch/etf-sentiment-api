@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -239,4 +239,54 @@ class PortfolioStatusResponse(BaseModel):
     asset_allocation: List[AssetAllocationItem] = []
     savings_plan: Optional[SavingsPlanResponse] = None
     transactions: List[TransactionResponse] = []
+
+
+# ============================================================================
+# Schemas del Asistente Conversacional Multimodal (NLP & Function Calling)
+# ============================================================================
+
+class AssistantChatRequest(BaseModel):
+    user_prompt: str = Field(
+        ...,
+        min_length=1,
+        description="Consulta o comando en lenguaje natural transcrito desde voz",
+        examples=["Simula una aportación de 100 euros al oro"],
+    )
+    user_id: Optional[int] = Field(
+        default=1,
+        description="ID del usuario (por defecto 1 - Demo User)",
+        examples=[1],
+    )
+    session_id: Optional[str] = Field(
+        default=None,
+        description="Identificador opcional de sesión para contexto conversacional",
+        examples=["session_abc123"],
+    )
+
+
+class AssistantChatResponse(BaseModel):
+    text_response: str = Field(
+        ...,
+        description="Respuesta redactada en lenguaje natural por Gemini",
+        examples=["He simulado una aportación mensual de 100€ al oro..."],
+    )
+    action_executed: str = Field(
+        ...,
+        description="Herramienta ejecutada (ej: simulate_dca_plan, get_portfolio_summary) o GENERAL_QUERY",
+        examples=["simulate_dca_plan"],
+    )
+    tool_args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Parámetros estructurados extraídos por Gemini",
+        examples=[{"monthly_deposit": 100.0, "allocation_gold_pct": 100.0}],
+    )
+    data_payload: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Datos resultantes de la operación (para sincronización de interfaz)",
+    )
+    audio_base64: Optional[str] = Field(
+        default=None,
+        description="Audio narrado sintetizado con ElevenLabs (Fase 12)",
+    )
+
 

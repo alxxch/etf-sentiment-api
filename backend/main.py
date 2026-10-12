@@ -9,14 +9,15 @@ from sqlalchemy.orm import Session
 from ai_service import analyze_sentiment
 from cleanup_history import cleanup_fallback_records
 from db import EtfHistory, get_db, seed_demo_user
+from routers.assistant import router as assistant_router
 from routers.fintech import router as fintech_router
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
 app = FastAPI(
     title="Smart Market Sentiment & ETF Dashboard API",
-    description="API REST para análisis de sentimiento, cotizaciones en tiempo real y persistencia histórica en PostgreSQL",
-    version="3.0.0",
+    description="API REST para análisis de sentimiento, cotizaciones en tiempo real, persistencia histórica en PostgreSQL y Asistente Financiero con Function Calling",
+    version="4.0.0",
 )
 
 # Configuración de CORS para permitir conexiones desde Flutter (Web, Móvil, Desktop)
@@ -28,8 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inclusión del router Fintech & Simulador de Portfolio
+# Inclusión de routers: Fintech / DCA y Asistente Multimodal
 app.include_router(fintech_router, prefix="/api/v1/fintech", tags=["Fintech & Portfolio"])
+app.include_router(assistant_router, prefix="/api/v1/assistant", tags=["Assistant & NLP"])
 
 
 @app.on_event("startup")
