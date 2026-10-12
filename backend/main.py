@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ai_service import analyze_sentiment
+from cleanup_history import cleanup_fallback_records
 from db import EtfHistory, get_db
 from scraper import get_ticker_data
 from tts_service import generate_speech
@@ -14,7 +15,7 @@ from tts_service import generate_speech
 app = FastAPI(
     title="Smart Market Sentiment & ETF Dashboard API",
     description="API REST para análisis de sentimiento, cotizaciones en tiempo real y persistencia histórica en PostgreSQL",
-    version="2.0.0",
+    version="2.1.0",
 )
 
 # Configuración de CORS para permitir conexiones desde Flutter (Web, Móvil, Desktop)
@@ -25,6 +26,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    """Evento de inicio: limpia registros artificiales generados por saturación de cuota previa."""
+    try:
+        deleted = cleanup_fallback_records()
+        if deleted > 0:
+            print(f"[startup] Limpieza inicial: {deleted} registros planos eliminados de etf_history.")
+    except Exception as e:
+        print(f"[startup] Advertencia durante la limpieza inicial: {e}")
+
 
 # ============================================================================
 # CAPA DE PROTECCIÓN: Caché en memoria con Time-To-Live (TTL) de 5 minutos
@@ -81,7 +94,7 @@ def root() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "service": "Smart Market Sentiment API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "cache_entries": len(_sentiment_cache),
         "cache_ttl_seconds": CACHE_TTL_SECONDS,
         "docs_url": "/docs",
@@ -94,6 +107,21 @@ def clear_cache() -> Dict[str, str]:
     count = len(_sentiment_cache)
     _sentiment_cache.clear()
     return {"message": f"Caché limpiada con éxito ({count} entradas eliminadas)."}
+
+
+@app.delete(
+    "/api/v1/history/cleanup",
+    tags=["History"],
+    summary="Elimina registros históricos planos generados por caídas temporales de cuota",
+)
+def cleanup_history() -> Dict[str, Any]:
+    """Elimina de PostgreSQL los registros que contengan avisos de cuota saturada."""
+    deleted = cleanup_fallback_records()
+    return {
+        "status": "success",
+        "deleted_count": deleted,
+        "message": f"Se eliminaron {deleted} registros artificiales de la base de datos.",
+    }
 
 
 @app.get(
@@ -134,8 +162,7 @@ def get_sentiment(
 ) -> Dict[str, Any]:
     """Orquesta la extracción de datos de mercado (yfinance), el análisis de
     sentimiento con IA (Google GenAI) y la narración de audio (ElevenLabs).
-    Persiste cada nueva observación en la base de datos PostgreSQL e implementa
-    protección de caché en memoria de 5 minutos.
+    Persiste en PostgreSQL solo cuando el análisis es legítimo (evita ensuciar la BD ante 429).
     """
     clean_ticker = ticker.strip().upper()
     if not clean_ticker:
@@ -172,22 +199,31 @@ def get_sentiment(
         # 4. Generación de síntesis de voz (Flash Briefing) con ElevenLabs
         audio_base64 = generate_speech(ai_summary) if ai_summary else None
 
-        # 5. Persistencia en Base de Datos PostgreSQL usando SQLAlchemy
-        try:
-            history_record = EtfHistory(
-                ticker=market_data["ticker"],
-                price=market_data["current_price"],
-                change_percent=market_data["change_percent"],
-                sentiment_score=sentiment_result["sentiment_score"],
-                ai_summary=ai_summary,
-            )
-            db.add(history_record)
-            db.commit()
-            db.refresh(history_record)
-            print(f"[db] Registro histórico guardado en PostgreSQL (ID: {history_record.id}) para {clean_ticker}")
-        except Exception as db_err:
-            db.rollback()
-            print(f"[db] Advertencia al persistir registro en PostgreSQL para {clean_ticker}: {db_err}")
+        # 5. Persistencia en Base de Datos PostgreSQL (solo si NO es aviso de cuota saturada)
+        is_quota_fallback = (
+            "Límite temporal de peticiones" in ai_summary
+            or "GEMINI_API_KEY no configurada" in ai_summary
+            or "RESOURCE_EXHAUSTED" in ai_summary
+        )
+
+        if not is_quota_fallback:
+            try:
+                history_record = EtfHistory(
+                    ticker=market_data["ticker"],
+                    price=market_data["current_price"],
+                    change_percent=market_data["change_percent"],
+                    sentiment_score=sentiment_result["sentiment_score"],
+                    ai_summary=ai_summary,
+                )
+                db.add(history_record)
+                db.commit()
+                db.refresh(history_record)
+                print(f"[db] Registro histórico real guardado en PostgreSQL (ID: {history_record.id}) para {clean_ticker}")
+            except Exception as db_err:
+                db.rollback()
+                print(f"[db] Advertencia al persistir registro en PostgreSQL para {clean_ticker}: {db_err}")
+        else:
+            print(f"[db] Omitiendo guardado en base de datos para {clean_ticker}: respuesta temporal por saturación de cuota.")
 
         # 6. Respuesta unificada
         response_payload = {

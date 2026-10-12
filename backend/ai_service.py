@@ -11,18 +11,25 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv()
 
 
+class GeminiRateLimitException(Exception):
+    """Excepción específica cuando se agota la cuota de peticiones de Gemini (429 / RESOURCE_EXHAUSTED)."""
+    pass
+
+
 def _get_client(api_key: Optional[str] = None) -> genai.Client:
     """Instancia el cliente oficial de Google GenAI con la API Key configurada."""
     key = api_key or os.getenv("GEMINI_API_KEY", "").strip()
     return genai.Client(api_key=key)
 
 
-def analyze_sentiment(news_list: List[str]) -> Dict[str, Any]:
+def analyze_sentiment(news_list: List[str], raise_on_quota: bool = False) -> Dict[str, Any]:
     """Analiza una lista de titulares de noticias y genera un score de sentimiento
     y un resumen conciso mediante la API oficial de Google GenAI (google-genai).
 
     Args:
         news_list: Lista de cadenas con titulares o resúmenes de noticias.
+        raise_on_quota: Si es True, eleva GeminiRateLimitException en lugar de devolver
+                        el score neutral (55). Usado en tareas de Celery con Exponential Backoff.
 
     Returns:
         Diccionario con la estructura exacta:
@@ -107,11 +114,17 @@ Titulares a analizar:
 
     # Fallback refinado ante ResourceExhausted (429) o cuota temporal
     err_str = str(last_error) if last_error else ""
-    if (
+    is_quota_exhausted = (
         (isinstance(last_error, errors.APIError) and getattr(last_error, "code", None) == 429)
         or "RESOURCE_EXHAUSTED" in err_str
         or "quota" in err_str.lower()
-    ):
+    )
+
+    if is_quota_exhausted:
+        if raise_on_quota:
+            raise GeminiRateLimitException(
+                f"Límite de cuota alcanzado en la API de Gemini (429 RESOURCE_EXHAUSTED): {err_str}"
+            )
         return {
             "sentiment_score": 55,
             "ai_summary": "Sentimiento estable de mercado. (Límite temporal de peticiones alcanzado en Gemini; servicio autorregulando la cuota).",
