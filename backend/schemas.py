@@ -140,11 +140,58 @@ class PortfolioDetailResponse(PortfolioResponse):
 # Schemas de Simulación DCA y Rendimiento
 # ============================================================================
 
+# ============================================================================
+# Schemas de Simulación DCA y Rendimiento vs Sentimiento
+# ============================================================================
+
 class DcaSimulationRequest(BaseModel):
-    monthly_deposit: float = Field(default=200.0, ge=10.0, description="Aportación mensual en EUR")
-    months: int = Field(default=6, ge=1, le=60, description="Meses a simular retrospectivamente")
-    allocation_equity_pct: float = Field(default=80.0, ge=0.0, le=100.0, description="% Renta Variable")
-    allocation_gold_pct: float = Field(default=20.0, ge=0.0, le=100.0, description="% Oro físico")
+    initial_capital: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Capital inicial disponible antes de las aportaciones periódicas",
+        examples=[0.0],
+    )
+    monthly_deposit: float = Field(
+        default=200.0,
+        ge=10.0,
+        description="Aportación mensual en EUR",
+        examples=[200.0],
+    )
+    months: int = Field(
+        default=6,
+        ge=1,
+        le=60,
+        description="Meses a simular retrospectivamente",
+        examples=[6],
+    )
+    allocation_equity_pct: float = Field(
+        default=80.0,
+        ge=0.0,
+        le=100.0,
+        description="% Renta Variable (ej: VWCE.DE)",
+        examples=[80.0],
+    )
+    allocation_gold_pct: float = Field(
+        default=20.0,
+        ge=0.0,
+        le=100.0,
+        description="% Oro físico cobertura (ej: 8PSG.DE)",
+        examples=[20.0],
+    )
+
+
+class DcaStepPoint(BaseModel):
+    month_index: int = Field(..., description="Índice secuencial del mes simulado")
+    date: str = Field(..., description="Fecha de corte o aportación (YYYY-MM-DD)")
+    cumulative_invested: float = Field(..., description="Capital acumulado aportado hasta este punto")
+    portfolio_value: float = Field(..., description="Valoración real de los activos en esta fecha")
+    pnl: float = Field(..., description="Beneficio / Pérdida en EUR")
+    roi_pct: float = Field(..., description="Rentabilidad porcentual ROI")
+    market_sentiment_score: int = Field(..., ge=0, le=100, description="Puntuación de sentimiento de mercado (0-100)")
+    equity_price: float = Field(..., description="Precio de renta variable en el paso")
+    gold_price: float = Field(..., description="Precio de oro en el paso")
+    equity_shares_bought: float = Field(..., description="Participaciones de renta variable adquiridas")
+    gold_shares_bought: float = Field(..., description="Participaciones de oro adquiridas")
 
 
 class DcaSimulationResult(BaseModel):
@@ -154,4 +201,42 @@ class DcaSimulationResult(BaseModel):
     roi_pct: float = Field(..., description="Retorno sobre la inversión porcentual")
     equity_shares: float = Field(..., description="Participaciones acumuladas en renta variable")
     gold_shares: float = Field(..., description="Participaciones acumuladas en oro")
+    break_even_equity: float = Field(..., description="Precio de equilibrio medio para renta variable")
+    break_even_gold: float = Field(..., description="Precio de equilibrio medio para oro")
+    current_equity_price: float = Field(..., description="Precio actual de cotización de renta variable")
+    current_gold_price: float = Field(..., description="Precio actual de cotización del oro")
     transactions_count: int = Field(..., description="Número de operaciones simuladas")
+    allocation_equity_pct: float = Field(..., description="% asignado a renta variable")
+    allocation_gold_pct: float = Field(..., description="% asignado a oro")
+    steps: List[DcaStepPoint] = Field(default=[], description="Serie temporal para graficar rentabilidad vs sentimiento")
+
+
+class AssetAllocationItem(BaseModel):
+    ticker: str = Field(..., description="Ticker del activo")
+    asset_class: str = Field(..., description="Clase de activo (EQUITY o GOLD)")
+    shares: float = Field(..., description="Total participaciones poseídas")
+    current_price: float = Field(..., description="Precio unitario actual en EUR")
+    current_value: float = Field(..., description="Valor total actual en EUR")
+    allocation_pct: float = Field(..., description="Porcentaje real dentro del total de la cartera")
+    break_even_price: float = Field(..., description="Precio medio de compra (Break-Even)")
+    pnl: float = Field(..., description="P&L acumulado en EUR")
+    roi_pct: float = Field(..., description="ROI acumulado en %")
+
+
+class PortfolioStatusResponse(BaseModel):
+    id: int
+    user_id: int
+    user_email: str
+    user_name: str
+    name: str
+    currency: str
+    initial_balance: float
+    total_invested: float
+    current_value: float
+    pnl: float
+    roi_pct: float
+    market_sentiment_score: int
+    asset_allocation: List[AssetAllocationItem] = []
+    savings_plan: Optional[SavingsPlanResponse] = None
+    transactions: List[TransactionResponse] = []
+

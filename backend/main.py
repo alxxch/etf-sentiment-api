@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from ai_service import analyze_sentiment
 from cleanup_history import cleanup_fallback_records
 from db import EtfHistory, get_db, seed_demo_user
+from routers.fintech import router as fintech_router
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
@@ -26,6 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Inclusión del router Fintech & Simulador de Portfolio
+app.include_router(fintech_router, prefix="/api/v1/fintech", tags=["Fintech & Portfolio"])
 
 
 @app.on_event("startup")

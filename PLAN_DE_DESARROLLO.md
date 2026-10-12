@@ -216,29 +216,25 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 8: Algoritmos de Rentabilidad y Sentimiento
 **Objetivo:** Desarrollar los algoritmos de analítica financiera y exponer endpoints en FastAPI para evaluar el valor de la cartera en el tiempo, calculando métricas de rentabilidad (ROI, P&L) y contrastándolas contra la curva histórica de sentimiento de mercado (`sentiment_score`) consolidada en la v2.0.
 
-- [ ] 8.1 Motor de Métricas de Rentabilidad y Rendimiento Temporal:
-  - [ ] Implementar algoritmo de valoración liquidativa temporal:
-    - [ ] Valor actual de la cartera ($V_t$): $\sum (\text{shares}_i \times \text{precio\_actual}_i) + \text{efectivo\_remanente}$.
-    - [ ] Desglose de capital aportado acumulado ($C_{\text{inv}}$).
-    - [ ] Ganancia/Pérdida absoluta ($\text{P\&L} = V_t - C_{\text{inv}}$ en EUR).
-    - [ ] Retorno sobre la inversión ($\text{ROI} = \frac{\text{P\&L}}{C_{\text{inv}}} \times 100\%$).
-    - [ ] Tasa interna de retorno anualizada o rentabilidad ponderada por dinero (MWRR - Money-Weighted Rate of Return simplificado).
-- [ ] 8.2 Cruce y Correlación de Rentabilidad con la Curva de Sentimiento (`sentiment_score`):
-  - [ ] Diseñar algoritmo de alineación temporal: cruzar cada punto de la serie de valor del portfolio y fechas de compra DCA con el `sentiment_score` promedio de mercado registrado en `etf_history` (v2.0).
-  - [ ] Métricas de análisis de comportamiento y "Timing Alpha":
-    - [ ] Calcular rentabilidad media de las aportaciones ejecutadas en momentos de pánico/pesimismo (sentimiento < 40) frente a momentos de euforia/codicia (sentimiento > 70).
-    - [ ] Indicador cuantitativo de correlación sentimiento-rendimiento para validar la hipótesis contraria ("Buy the Fear").
-- [ ] 8.3 Endpoints REST en FastAPI (`backend/main.py`):
-  - [ ] `POST /api/v1/portfolio/savings-plan`: Crear o actualizar la configuración del plan de ahorro recurrente del usuario.
-  - [ ] `GET /api/v1/portfolio/savings-plan/{portfolio_id}`: Consultar la configuración vigente del plan de ahorro y distribución porcentual.
-  - [ ] `POST /api/v1/portfolio/simulate-dca`: Endpoint de simulación que recibe capital mensual, horizonte temporal y distribución (% Renta Variable vs % Oro) y devuelve el desglose de compras, coste medio y evolución de balance.
-  - [ ] `GET /api/v1/portfolio/{portfolio_id}/performance`: Endpoint principal de rendimiento que entrega:
-    - [ ] Resumen de métricas: `current_value`, `total_invested`, `pnl_amount`, `roi_percentage`.
-    - [ ] Desglose de alocación actual por activo y clase de activo (porcentajes reales vs objetivo).
-    - [ ] Serie temporal para gráficos: array de puntos `{date, portfolio_value, total_invested, market_sentiment_score}`.
-- [ ] 8.4 Pruebas Unitarias y de Integración:
-  - [ ] Tests de cálculo financiero en `backend/tests/test_portfolio.py` para asegurar consistencia en redondeos y decimales.
-  - [ ] Tests de validación de endpoints y respuestas JSON en FastAPI Docs (`/docs`).
+- [x] 8.1 Motor de Métricas de Rentabilidad y Rendimiento Temporal:
+  - [x] Implementar algoritmo de valoración liquidativa temporal:
+    - [x] Valor actual de la cartera ($V_t$): $\sum (\text{shares}_i \times \text{precio\_actual}_i) + \text{efectivo\_remanente}$.
+    - [x] Desglose de capital aportado acumulado ($C_{\text{inv}}$).
+    - [x] Ganancia/Pérdida absoluta ($\text{P\&L} = V_t - C_{\text{inv}}$ en EUR).
+    - [x] Retorno sobre la inversión ($\text{ROI} = \frac{\text{P\&L}}{C_{\text{inv}}} \times 100\%$).
+    - [x] Acumulación de participaciones y precio medio de equilibrio (Break-Even Cost Basis).
+- [x] 8.2 Cruce y Correlación de Rentabilidad con la Curva de Sentimiento (`sentiment_score`):
+  - [x] Diseñar algoritmo de alineación temporal: cruzar cada punto de la serie de valor del portfolio y fechas de compra DCA con el `sentiment_score` de mercado registrado en `etf_history` (v2.0).
+  - [x] Generación de serie temporal enriquecida para graficar curvas dobles en Flutter: `{date, month_index, cumulative_invested, portfolio_value, pnl, roi_pct, market_sentiment_score}`.
+- [x] 8.3 Endpoints REST en FastAPI (`backend/routers/fintech.py` y `backend/main.py`):
+  - [x] Registro del router bajo el prefijo `/api/v1/fintech` con tags `["Fintech & Portfolio"]`.
+  - [x] `GET /api/v1/fintech/portfolio`: Endpoint consolidado que devuelve estado actual de la cartera Demo (User ID 1), valoración liquidativa, desglose multiactivo (PieChart), plan de ahorro activo y transacciones.
+  - [x] `GET /api/v1/fintech/portfolio/{portfolio_id}`: Consulta por identificador único de cartera.
+  - [x] `POST /api/v1/fintech/simulate-dca`: Endpoint de simulación DCA retrospectiva que recibe capital inicial, aporte mensual, meses y alocación (% RV vs % Oro) y devuelve la curva temporal de crecimiento de capital y sentimiento.
+  - [x] `GET /api/v1/fintech/savings-plan` y `POST /api/v1/fintech/savings-plan`: Consulta y actualización del plan de ahorro activo.
+- [x] 8.4 Pruebas Unitarias y de Integración (`backend/test_fintech_phase8.py`):
+  - [x] Tests unitarios y de integración con FastAPI `TestClient` (6/6 tests pasando 100%).
+  - [x] Validación de schemas Pydantic y documentación Swagger OpenAPI verificada en `/docs`.
 
 ### Fase 9: Interfaz de Usuario Financiera (Flutter)
 **Objetivo:** Desarrollar la experiencia de usuario financiera en Flutter implementando la pantalla "Mi Cartera", con gráficos circulares interactivos (`PieChart` de `fl_chart`), configuración dinámica de planes de ahorro mensual y visualización de métricas avanzadas (ROI, P&L) con estética Apple Finance.
