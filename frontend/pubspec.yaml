@@ -42,6 +42,7 @@ dependencies:
   permission_handler: ^11.4.0
   model_viewer_plus: ^1.10.0
   webview_flutter_platform_interface: ^2.15.1
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:

@@ -24,6 +24,7 @@ class PortfolioProvider extends ChangeNotifier {
   double _allocationGoldPct = 20.0;
   int _simulationMonths = 6;
   double _initialCapital = 0.0;
+  int _rebalanceEventCounter = 0;
 
   // Getters
   PortfolioStatus? get portfolio => _portfolio;
@@ -42,6 +43,7 @@ class PortfolioProvider extends ChangeNotifier {
   double get allocationGoldPct => _allocationGoldPct;
   int get simulationMonths => _simulationMonths;
   double get initialCapital => _initialCapital;
+  int get rebalanceEventCounter => _rebalanceEventCounter;
 
   /// Carga inicial del portfolio solo si no está en memoria
   Future<void> fetchInitialData() async {
@@ -119,6 +121,7 @@ class PortfolioProvider extends ChangeNotifier {
         allocationGoldPct: _allocationGoldPct,
       );
       _simulation = sim;
+      _rebalanceEventCounter++;
     } catch (e) {
       debugPrint('[PortfolioProvider] Error al simular DCA: $e');
     } finally {
@@ -194,6 +197,7 @@ class PortfolioProvider extends ChangeNotifier {
         savingsPlan: updated,
         transactions: _portfolio!.transactions,
       );
+      _rebalanceEventCounter++;
       notifyListeners();
       return true;
     } catch (e) {
@@ -276,6 +280,7 @@ class PortfolioProvider extends ChangeNotifier {
             transactions: _portfolio!.transactions,
           );
         }
+        _rebalanceEventCounter++;
         notifyListeners();
       } else if (normAction == 'SAVINGS_PLAN_UPDATED' ||
           normAction == 'UPDATE_SAVINGS_PLAN') {
@@ -336,11 +341,18 @@ class PortfolioProvider extends ChangeNotifier {
         } else {
           await loadRebalanceAdvice();
         }
+        _rebalanceEventCounter++;
         notifyListeners();
       }
     } catch (e) {
       debugPrint('[PortfolioProvider] Error aplicando payload del asistente: $e');
     }
+  }
+
+  /// Dispara manualmente una animación de rebalanceo/recalculo en el espacio 3D
+  void triggerRebalanceAnimation() {
+    _rebalanceEventCounter++;
+    notifyListeners();
   }
 
   @visibleForTesting
