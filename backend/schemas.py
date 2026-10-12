@@ -92,7 +92,10 @@ class TransactionBase(BaseModel):
     price_per_share: float = Field(..., gt=0, description="Precio por participación en EUR", examples=[160.0])
     amount_invested: float = Field(..., gt=0, description="Monto total invertido en EUR", examples=[200.0])
     fee: float = Field(default=0.0, ge=0, description="Comisión aplicada", examples=[0.0])
+    broker_fee: Optional[float] = Field(default=0.0, ge=0, description="Comisión del broker", examples=[0.0])
+    currency: str = Field(default="EUR", description="Divisa de la transacción", examples=["EUR"])
     is_automated: bool = Field(default=True, description="Generado automáticamente por DCA")
+    external_tx_id: Optional[str] = Field(default=None, description="Identificador externo del broker para idempotencia")
 
 
 class TransactionCreate(TransactionBase):
@@ -293,5 +296,50 @@ class AssistantChatResponse(BaseModel):
         default=None,
         description="Audio narrado sintetizado con ElevenLabs (Fase 12)",
     )
+
+
+# ============================================================================
+# Schemas de Open Banking y Brokers (BrokerAccount & Sync)
+# ============================================================================
+
+class BrokerAccountBase(BaseModel):
+    broker_name: str = Field(
+        ...,
+        description="Nombre de la entidad o broker (ej: Trade Republic)",
+        examples=["Trade Republic"],
+    )
+    account_reference: str = Field(
+        ...,
+        description="Número de cuenta o referencia externa del broker",
+        examples=["TR-ES-984210"],
+    )
+
+
+class BrokerAccountCreate(BrokerAccountBase):
+    user_id: Optional[int] = Field(
+        default=1,
+        description="Identificador del usuario propietario (por defecto 1 - Demo User)",
+        examples=[1],
+    )
+
+
+class BrokerAccountResponse(BrokerAccountBase):
+    id: int
+    user_id: int
+    sync_status: str = Field(..., description="Estado de sincronización (PENDING, SYNCED, ERROR)")
+    last_synced_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SyncResponse(BaseModel):
+    account_id: int = Field(..., description="ID de la cuenta de broker sincronizada")
+    broker_name: str = Field(..., description="Nombre del broker")
+    sync_status: str = Field(..., description="Estado final de la sincronización")
+    synced_transactions: int = Field(..., description="Número de transacciones nuevas añadidas")
+    skipped_transactions: int = Field(..., description="Número de transacciones duplicadas omitidas")
+    last_synced_at: Optional[datetime] = Field(None, description="Marca de tiempo de la última sincronización")
+    message: str = Field(..., description="Mensaje descriptivo del resultado")
+
 
 

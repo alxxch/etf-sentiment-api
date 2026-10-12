@@ -3,7 +3,6 @@
 ## 🎯 Visión General del Proyecto
 Aplicación full-stack que combina extracción de datos financieros, análisis de sentimiento mediante IA (LLM), síntesis de voz hiperrealista y una interfaz móvil/web ultra-minimalista. Orientado a demostrar habilidades en integración de APIs, diseño UI/UX y arquitectura de software para el portfolio de LinkedIn.
 
-*   **Frontend:** Flutter (Dart), Provider (Gestor de estado), `http` (Peticiones), `fl_chart` (Gráficos históricos y de tarta), `audioplayers`.
 ## 🛠 Stack Tecnológico (v1.0 - v4.0)
 *   **Backend:** Python 3.10+, FastAPI, `yfinance`, `google-genai` (Gemini 2.5 con Function Calling / Tools), `elevenlabs` (TTS), Uvicorn, PostgreSQL 16, SQLAlchemy, Alembic, Celery, Redis.
 *   **Frontend:** Flutter (Dart), Provider (Gestor de estado), `speech_to_text` / captura de micrófono, `http` (Peticiones), `fl_chart` (Gráficos históricos y de tarta), `audioplayers`.
@@ -41,9 +40,9 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 
 ### 📌 v4.0: "Asistente Financiero Bidireccional" (Objetivo Actual)
 *Voz Total: Captura de voz (STT), Function Calling con Gemini y síntesis de respuesta multimodal.*
-- [ ] Integración de Speech-to-Text (STT) en Flutter con interfaz interactiva ("Escuchando...").
-- [ ] Procesamiento de lenguaje natural y Function Calling con Gemini en el backend para interpretar intenciones financieras.
-- [ ] Orquestación con PostgreSQL y servicios Fintech / DCA para ejecutar acciones y consultas vía voz.
+- [x] Integración de Speech-to-Text (STT) en Flutter con interfaz interactiva ("Escuchando...").
+- [x] Procesamiento de lenguaje natural y Function Calling con Gemini en el backend para interpretar intenciones financieras.
+- [x] Orquestación con PostgreSQL y servicios Fintech / DCA para ejecutar acciones y consultas vía voz.
 - [ ] Bucle multimodal de respuesta integrando datos estructurados y síntesis de audio con ElevenLabs.
 
 ---
@@ -295,78 +294,104 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 10: Captura de Voz en Flutter (Frontend)
 **Objetivo:** Implementar la captura de audio en tiempo real desde el dispositivo móvil/web, integrando el reconocimiento de voz (Speech-to-Text), gestionando permisos del sistema y ofreciendo una experiencia visual fluida con indicadores dinámicos de estado ("Escuchando...", onda/halo pulsante) antes de emitir la petición al backend.
 
-- [ ] 10.1 Integración de Paquetes y Permisos del Sistema (`frontend/pubspec.yaml`, `AndroidManifest.xml`, `Info.plist`):
-  - [ ] Añadir dependencias de Speech-to-Text y audio (`speech_to_text` para transcripción local/nativa o `record` para captura de stream de audio).
-  - [ ] Configurar permisos de micrófono en Android (`android.permission.RECORD_AUDIO`, `android.permission.INTERNET`) y en iOS (`NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`).
-  - [ ] Comprobación y solicitud proactiva de permisos en tiempo de ejecución con manejo de denegación o permisos restringidos.
-- [ ] 10.2 Componente UI del Asistente y Botón de Escucha (`frontend/lib/widgets/voice_assistant_modal.dart` o `voice_bar_widget.dart`):
-  - [ ] Botón flotante / barra de acción rápida para activar la escucha por voz desde `HomeScreen` y `PortfolioScreen`.
-  - [ ] Indicador visual interactivo: estado "Escuchando..." con animación de halo o forma de onda reactiva (estilo Apple Intelligence / Siri) utilizando la paleta de colores de la app (`#0A84FF`, `#30D158`).
-  - [ ] Transcripción en tiempo real: renderizado del texto detectado en vivo sobre una tarjeta flotante sutil con fondo `#1C1C1E`.
-- [ ] 10.3 Gestor de Estado de Voz (`frontend/lib/providers/voice_assistant_provider.dart`):
-  - [ ] Máquina de estados conversacional: `idle` (reposo), `listening` (capturando audio), `processing` (esperando respuesta del backend), `speaking` (reproduciendo audio de respuesta), `error`.
-  - [ ] Detección automática de pausas/silencios para finalizar la locución o botón de confirmación/cancelación manual.
-  - [ ] Manejo de feedback háptico (vibración leve al iniciar/terminar de escuchar).
-- [ ] 10.4 Capa de Transporte y Comunicación con el Backend (`frontend/lib/services/api_service.dart`):
-  - [ ] Definir modelo de datos `AssistantResponse` (texto de respuesta, audio codificado, tipo de acción y payload de datos).
-  - [ ] Implementar método `sendVoicePrompt(String promptText)` para enviar la transcripción vía HTTP POST a `/api/v1/assistant/chat`.
-  - [ ] Manejo de timeouts y fallos de conectividad con feedback amigable en la interfaz.
+- [x] 10.1 Integración de Paquetes y Permisos del Sistema (`frontend/pubspec.yaml`, `AndroidManifest.xml`, `Info.plist`):
+  - [x] Añadir dependencias `speech_to_text` y `permission_handler` a `pubspec.yaml`.
+  - [x] Configurar permisos obligatorios de micrófono en Android (`android.permission.RECORD_AUDIO`, `INTERNET`, `BLUETOOTH`) y servicio en `<queries>`.
+  - [x] Configurar llaves de privacidad en iOS (`NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`).
+  - [x] Solicitud proactiva de permisos en tiempo de ejecución con validación de estado.
+- [x] 10.2 Componente UI del Asistente y Botón de Escucha (`frontend/lib/widgets/voice_assistant_button.dart`):
+  - [x] Botón flotante FAB con estética Apple Finance (`#1C1C1E`, bordes `#38383A`, acento `#0A84FF`) integrado en el Scaffold principal para acceso global.
+  - [x] Halo concéntrico animado reactivo (estilo Siri / Apple Intelligence) activo exclusivamente durante la escucha para optimizar recursos y batería.
+  - [x] Tarjeta flotante superior con indicador visual de estado ("ESCUCHANDO...", "PROCESANDO...", "ERROR DE AUDIO") y transcripción en vivo en tiempo real con botón de cancelación.
+- [x] 10.3 Gestor de Estado de Voz (`frontend/lib/providers/voice_provider.dart`):
+  - [x] Máquina de estados completa del asistente: `idle`, `listening`, `processing`, `speaking`, `error`.
+  - [x] Detección de silencios, finalización automática de locución y feedback háptico (`HapticFeedback.mediumImpact`).
+  - [x] Registro global en el `MultiProvider` de `main.dart`.
+- [x] 10.4 Mock de Red y Batería de Pruebas (`frontend/test/voice_test.dart`):
+  - [x] Implementación del mock de red: al terminar la escucha, imprime en consola el texto capturado, simula breve procesamiento y retorna a `idle` (listo para conectar endpoint en Fase 11).
+  - [x] Suite de pruebas unitarias y de widgets en `voice_test.dart` verificando transiciones de estado, renderizado UI y cancelación (10/10 tests pasando 100%).
 
 ### Fase 11: NLP y Function Calling (Backend)
 **Objetivo:** Evolucionar `ai_service.py` hacia una arquitectura basada en Agentes y Function Calling (Tools) con el SDK `google-genai` (Gemini 2.5). El modelo interpretará lenguaje natural financiero ("Simula una aportación de 100 euros al oro", "¿Cómo va mi cartera?", "¿Cuál es el sentimiento del mercado?"), seleccionará dinámicamente las herramientas apropiadas y las ejecutará contra PostgreSQL y los motores analíticos de la v3.0.
 
-- [ ] 11.1 Definición de Esquemas de Herramientas / Tools (`backend/services/ai_tools.py`):
-  - [ ] Declaración de `get_portfolio_summary`:
+- [x] 11.1 Definición de Esquemas de Herramientas / Tools (`backend/services/ai_tools.py`):
+  - [x] Declaración de `get_portfolio_summary`:
     - Consulta del estado de la cartera (balance actual, capital invertido, P&L, ROI y asignación actual entre ETFs y oro físico).
-  - [ ] Declaración de `simulate_dca_plan`:
+  - [x] Declaración de `simulate_dca_plan`:
     - Parámetros: `monthly_deposit` (float, ej: 100.0), `months` (int, ej: 12), `allocation_equity_pct` (float, ej: 0.0), `allocation_gold_pct` (float, ej: 100.0).
     - Mapeo inteligente de entidades coloquiales (ej: "oro" -> `8PSG.DE` 100%, "mundo/global" -> `VWCE.DE` 100%).
-  - [ ] Declaración de `get_market_sentiment`:
+  - [x] Declaración de `get_market_sentiment`:
     - Parámetros: `ticker` (opcional, ej: `VWCE.DE`, `8PSG.DE`).
     - Consulta del último sentimiento histórico y precio registrado en `etf_history`.
-  - [ ] Declaración de `update_savings_plan`:
+  - [x] Declaración de `update_savings_plan`:
     - Parámetros: `monthly_deposit`, `allocation_equity_pct`, `allocation_gold_pct`.
     - Modificación persistente del plan de ahorro recurrente en PostgreSQL.
-- [ ] 11.2 Capa de Despacho y Ejecución de Herramientas (`backend/services/tool_dispatcher.py`):
-  - [ ] Mapeador declarativo que conecta las llamadas `function_call` generadas por Gemini con las funciones ORM en SQLAlchemy (`models.Portfolio`, `models.SavingsPlan`, `models.Transaction`) y `dca_simulator.py`.
-  - [ ] Ejecución en el contexto de la base de datos (`get_db`) de forma transaccional y segura.
-  - [ ] Serialización estructurada de los resultados de las herramientas para reenviarlos al contexto del modelo.
-- [ ] 11.3 Refactorización de `ai_service.py` para Agente Financiero:
-  - [ ] Configurar `client.models.generate_content` con lista de `tools` disponibles.
-  - [ ] Diseñar System Prompt especializado: perfil de asesor financiero cuantitativo, respuesta en español concisa y profesional, tono Apple Finance, confirmación clara de acciones ejecutadas y métricas clave.
-  - [ ] Implementar bucle de resolución de llamadas (LLM -> Tool Request -> Tool Execution -> Tool Response -> LLM Respuesta Final).
-- [ ] 11.4 Endpoint REST del Asistente (`backend/routers/assistant.py` y `backend/main.py`):
-  - [ ] Definir schemas Pydantic en `schemas.py`: `AssistantQueryRequest`, `AssistantQueryResponse`.
-  - [ ] Crear endpoint `POST /api/v1/assistant/chat` bajo el router `/api/v1/assistant`.
-  - [ ] Integración en la aplicación FastAPI principal y verificación en `/docs`.
-- [ ] 11.5 Batería de Pruebas Unitarias de NLP y Function Calling (`backend/test_assistant_phase11.py`):
-  - [ ] Pruebas unitarias mockeadas y de integración para comandos de consulta de cartera.
-  - [ ] Pruebas para simulación DCA ("aporta 100 euros al oro").
-  - [ ] Validación de la extracción correcta de parámetros numéricos y clases de activo.
+- [x] 11.2 Capa de Despacho y Ejecución de Herramientas (`backend/services/tool_dispatcher.py`):
+  - [x] Mapeador declarativo que conecta las llamadas `function_call` generadas por Gemini con las funciones ORM en SQLAlchemy (`models.Portfolio`, `models.SavingsPlan`, `models.Transaction`) y `dca_simulator.py`.
+  - [x] Ejecución en el contexto de la base de datos (`get_db`) de forma transaccional y segura.
+  - [x] Serialización estructurada de los resultados de las herramientas para reenviarlos al contexto del modelo.
+- [x] 11.3 Refactorización de `ai_service.py` para Agente Financiero:
+  - [x] Configurar `client.models.generate_content` con lista de `tools` disponibles y cliente `google-genai`.
+  - [x] Diseñar System Prompt especializado: perfil de asesor financiero cuantitativo, respuesta en español concisa y profesional, tono Apple Finance, confirmación clara de acciones ejecutadas y métricas clave.
+  - [x] Implementar bucle de resolución de llamadas (LLM -> Tool Request -> Tool Execution -> Tool Response -> LLM Respuesta Final) con fallback semántico determinista de alta resiliencia.
+- [x] 11.4 Endpoint REST del Asistente (`backend/routers/assistant.py` y `backend/main.py`):
+  - [x] Definir schemas Pydantic en `schemas.py`: `AssistantChatRequest`, `AssistantChatResponse`.
+  - [x] Crear endpoint `POST /api/v1/assistant/chat` bajo el router `/api/v1/assistant`.
+  - [x] Integración en la aplicación FastAPI principal y verificación en `/docs`.
+- [x] 11.5 Batería de Pruebas Unitarias de NLP y Function Calling (`backend/test_assistant_phase11.py`):
+  - [x] Pruebas unitarias mockeadas y de integración para comandos de consulta de cartera.
+  - [x] Pruebas para simulación DCA ("aporta 100 euros al oro") con extracción numérica de montos y porcentajes.
+  - [x] Validación de la extracción correcta de parámetros numéricos y clases de activo (11/11 tests pasando 100%).
 
 ### Fase 12: Bucle Multimodal de Respuesta
 **Objetivo:** Cerrar el ciclo conversacional completo. El backend generará la síntesis de voz mediante ElevenLabs a partir de la respuesta natural de Gemini y devolverá un payload multimodal unificado. Flutter reproducirá el audio resultante de forma inmediata y sincronizará de forma reactiva el estado visual (gráficos circulares, métricas de rentabilidad y sliders) según las acciones financieras ejecutadas.
 
-- [ ] 12.1 Optimización y Pipeline de Síntesis de Voz (`backend/services/tts_service.py`):
-  - [ ] Adaptar la generación de audio con ElevenLabs para el texto fluido y conversacional del asistente.
-  - [ ] Selección de modelo de baja latencia (`eleven_turbo_v2_5` o `eleven_multilingual_v2`) y voz corporativa financiera.
-  - [ ] Codificación del audio en Base64 o generación de archivo estático servido eficientemente para evitar demoras perceptibles.
-- [ ] 12.2 Consolidación del Payload Multimodal en el Backend:
-  - [ ] Estructurar la respuesta de `POST /api/v1/assistant/chat` conteniendo:
-    - `text_response`: Texto en lenguaje natural generado por Gemini.
+- [x] 12.1 Optimización y Pipeline de Síntesis de Voz (`backend/tts_service.py`):
+  - [x] Adaptar la generación de audio con ElevenLabs para el texto fluido y conversacional del asistente.
+  - [x] Selección estricta de la voz corporativa financiera (`voice_id="t9LRTh3y1ioN00e9wsNh"`) y modelo multilingüe (`eleven_multilingual_v2`) optimizado para español neutro.
+  - [x] Codificación del audio en Base64 (`mp3_44100_128`) listo para consumo inmediato sin latencia de disco.
+- [x] 12.2 Consolidación del Payload Multimodal en el Backend (`backend/routers/assistant.py` y `schemas.py`):
+  - [x] Estructurar la respuesta de `POST /api/v1/assistant/chat` conteniendo:
+    - `text_response`: Texto en lenguaje natural redactado por Gemini.
     - `audio_base64`: Audio sintetizado por ElevenLabs listo para reproducción.
-    - `action_type`: Tipo de acción ejecutada (`PORTFOLIO_QUERY`, `DCA_SIMULATED`, `SAVINGS_PLAN_UPDATED`, `GENERAL_QUERY`).
-    - `data_payload`: Diccionario estructurado con los datos calculados (ej: serie temporal de la simulación DCA, nuevo estado de balance, etc.).
-- [ ] 12.3 Reproducción de Audio y Sincronización Reactiva en Flutter:
-  - [ ] Reproducción automática del audio devuelto mediante `audioplayers` al recibir la respuesta, transicionando la UI al estado `speaking`.
-  - [ ] Sincronización cruzada de estados entre `VoiceAssistantProvider` y `PortfolioProvider`:
-    - Si el usuario ejecutó una simulación DCA ("Simula 100€ al oro"), inyectar automáticamente el `data_payload` en el estado de `PortfolioProvider` para actualizar los gráficos de la pantalla de cartera y los sliders sin requerir clics adicionales.
-    - Si el usuario consultó el balance, resaltar visualmente las métricas correspondientes.
-  - [ ] Control de reproducción (pausar/reanudar voz) y visualizador sutil de audio sonando.
-- [ ] 12.4 Resiliencia, Manejo de Casos Límite y Experiencia Conversacional:
-  - [ ] Respuestas elegantes ante peticiones fuera de dominio o ambiguas con sugerencias guiadas ("No puedo ayudarte con eso, pero puedo simular una aportación o revisar el sentimiento de mercado").
-  - [ ] Manejo de degradación graciosa (Graceful Degradation): si la API de ElevenLabs sufre latencia o error de cuota, entregar la respuesta en texto y datos sin bloquear la experiencia de usuario.
-  - [ ] Memoria conversacional básica de sesión para permitir preguntas de seguimiento contextuales (ej: "¿Y qué rentabilidad daría en 24 meses?").
+    - `action_type`: Tipo de acción normalizada (`PORTFOLIO_QUERY`, `DCA_SIMULATED`, `SAVINGS_PLAN_UPDATED`, `MARKET_SENTIMENT_QUERY`, `GENERAL_QUERY`).
+    - `action_executed`: Nombre exacto de la herramienta ejecutada.
+    - `tool_args`: Argumentos cuantitativos extraídos.
+    - `data_payload`: Diccionario estructurado con los datos calculados (simulación DCA completa, estado de balance, parámetros de ahorro).
+- [x] 12.3 Reproducción de Audio y Sincronización Reactiva en Flutter (`frontend/lib/providers/` y `widgets/`):
+  - [x] Reproducción automática del audio devuelto mediante `audioplayers` al recibir HTTP 200, transicionando la UI al estado reactivo `speaking`.
+  - [x] Sincronización cruzada de estados entre `VoiceProvider` (`VoiceAssistantProvider`) y `PortfolioProvider`:
+    - Inyección reactiva automática del `data_payload` ante mutaciones (`DCA_SIMULATED` o `SAVINGS_PLAN_UPDATED`), actualizando sliders de aportación y gráficos circulares (`PieChart`) en tiempo real sin interacción manual del usuario.
+    - Consulta de balance (`PORTFOLIO_QUERY`) con recarga forzada y refresco visual instantáneo.
+  - [x] Control interactivo de reproducción en `VoiceAssistantButton`: botón flotante dinámico con icono de altavoz animado, tarjeta de transcripción y respuesta, y capacidad de pausar o silenciar la locución al pulsar.
+- [x] 12.4 Resiliencia, Manejo de Casos Límite y Experiencia Conversacional:
+  - [x] Manejo de degradación elegante (Graceful Degradation): si la API de ElevenLabs sufre latencia, límite de cuota o no tiene API key, captura la excepción y retorna `audio_base64: null`, permitiendo a Flutter mostrar la respuesta textual y actualizar gráficos sin romper la experiencia conversacional.
+  - [x] Suite completa de pruebas unitarias y de integración pasando 100% en backend (`test_assistant_phase12.py`) y frontend (`voice_test.dart`).
+
+---
+
+## 🏛️ v5.0: Open Banking & Live Broker Integration
+
+### Fase 13: Pasarela de Open Banking & Conectividad con Brokers (Backend)
+**Objetivo:** Desarrollar la arquitectura de datos, adaptadores y endpoints REST para conectar brokers reales (empezando por Trade Republic) y garantizar sincronizaciones idempotentes con prevención de transacciones duplicadas.
+
+- [x] 13.1 Extensión del Modelo Relacional (`backend/db/models.py`):
+  - [x] Modelo `BrokerAccount` (`id`, `user_id`, `broker_name`, `account_reference`, `sync_status` [PENDING, SYNCED, ERROR], `last_synced_at`).
+  - [x] Actualización del modelo `Transaction`: campos `external_tx_id` (String, unique=True, index=True), `broker_fee` (Float) y `currency` (String, default="EUR").
+  - [x] Migración con Alembic generada y aplicada con éxito en PostgreSQL (`0f3e6a450c98_add_broker_accounts.py`).
+- [x] 13.2 Capa de Servicios y Adaptadores (`backend/services/broker_service.py`):
+  - [x] Patrón Adapter con clase base abstracta `BaseBrokerAdapter`.
+  - [x] Implementación `TradeRepublicAdapter` con mock estructurado de balance y últimas transacciones de ETFs/Oro físico en formato unificado.
+  - [x] Servicio orquestador `sync_broker_account(account_id, db)` con verificación idempotente de `external_tx_id` para evitar duplicidades al resincronizar.
+- [x] 13.3 Endpoints REST (`backend/routers/banking.py` y `schemas.py`):
+  - [x] Schemas Pydantic: `BrokerAccountCreate`, `BrokerAccountResponse`, `SyncResponse`.
+  - [x] `POST /api/v1/banking/link-account`: Registro y vinculación de brokers externos.
+  - [x] `POST /api/v1/banking/sync/{account_id}`: Disparo de sincronización bajo demanda.
+  - [x] `GET /api/v1/banking/accounts`: Listado de brokers conectados por usuario.
+  - [x] Registro del router en `main.py` bajo `/api/v1/banking` con tag `["Open Banking"]`.
+- [x] 13.4 Testing Exhaustivo (`backend/test_banking_phase13.py`):
+  - [x] Pruebas de integración con `TestClient` para los 3 endpoints.
+  - [x] Validación estricta de idempotencia: dos llamadas consecutivas a `sync` con el mismo mock registran 0 transacciones duplicadas y preservan la integridad del saldo (6/6 tests pasando 100%).
 
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

@@ -1,6 +1,7 @@
+import enum
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, Enum as SQLEnum, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -64,6 +65,14 @@ class User(Base):
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+
+    # Relación One-to-Many con BrokerAccount: cuentas de brokers conectadas
+    broker_accounts = relationship(
+        "BrokerAccount",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="BrokerAccount.id.asc()",
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -203,6 +212,9 @@ class Transaction(Base):
     shares = Column(Float, nullable=False)
     price_per_share = Column(Float, nullable=False)
     amount_invested = Column(Float, nullable=False)
+    external_tx_id = Column(String(100), unique=True, index=True, nullable=True)
+    broker_fee = Column(Float, default=0.0, nullable=True)
+    currency = Column(String(10), default="EUR", nullable=False)
     fee = Column(Float, default=0.0, nullable=False)
     is_automated = Column(Boolean, default=True, nullable=False)
     timestamp = Column(
@@ -220,12 +232,15 @@ class Transaction(Base):
         return {
             "id": self.id,
             "portfolio_id": self.portfolio_id,
+            "external_tx_id": self.external_tx_id,
             "ticker": self.ticker,
             "asset_class": self.asset_class,
             "shares": self.shares,
             "price_per_share": self.price_per_share,
             "amount_invested": self.amount_invested,
             "fee": self.fee,
+            "broker_fee": self.broker_fee,
+            "currency": self.currency,
             "is_automated": self.is_automated,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
         }
@@ -234,4 +249,53 @@ class Transaction(Base):
         return (
             f"<Transaction(id={self.id}, portfolio_id={self.portfolio_id}, "
             f"ticker='{self.ticker}', shares={self.shares}, amount={self.amount_invested})>"
+        )
+
+
+class SyncStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    SYNCED = "SYNCED"
+    ERROR = "ERROR"
+
+
+class BrokerAccount(Base):
+    """Modelo ORM para cuentas conectadas de brokers (Open Banking & Live Broker API)."""
+    __tablename__ = "broker_accounts"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    broker_name = Column(String(100), nullable=False)  # ej. "Trade Republic"
+    account_reference = Column(String(100), nullable=False)
+    sync_status = Column(
+        SQLEnum(SyncStatus, name="sync_status_enum"),
+        default=SyncStatus.PENDING,
+        nullable=False,
+    )
+    last_synced_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Relación Many-to-One con User
+    user = relationship("User", back_populates="broker_accounts")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "broker_name": self.broker_name,
+            "account_reference": self.account_reference,
+            "sync_status": self.sync_status.value if hasattr(self.sync_status, "value") else str(self.sync_status),
+            "last_synced_at": self.last_synced_at.isoformat() if self.last_synced_at else None,
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"<BrokerAccount(id={self.id}, user_id={self.user_id}, "
+            f"broker='{self.broker_name}', status='{self.sync_status}')>"
         )

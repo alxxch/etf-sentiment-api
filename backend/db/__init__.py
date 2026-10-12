@@ -1,5 +1,5 @@
 from .database import Base, SessionLocal, engine, get_db
-from .models import EtfHistory, Portfolio, SavingsPlan, Transaction, User
+from .models import BrokerAccount, EtfHistory, Portfolio, SavingsPlan, SyncStatus, Transaction, User
 from .seed import seed_demo_user
 
 __all__ = [
@@ -12,5 +12,7 @@ __all__ = [
     "Portfolio",
     "SavingsPlan",
     "Transaction",
+    "BrokerAccount",
+    "SyncStatus",
     "seed_demo_user",
 ]
