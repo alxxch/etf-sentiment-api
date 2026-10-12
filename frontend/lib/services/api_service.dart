@@ -246,6 +246,49 @@ class ApiService {
     }
   }
 
+  /// Envía la transcripción de voz o texto al asistente financiero (Gemini Function Calling + ElevenLabs).
+  Future<Map<String, dynamic>> sendAssistantChat(
+    String prompt, {
+    int userId = 1,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/assistant/chat');
+    final payload = {
+      'user_prompt': prompt,
+      'user_id': userId,
+    };
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(payload),
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return data;
+      } else {
+        throw ApiException(
+          'Error en el asistente (${response.statusCode}): ${utf8.decode(response.bodyBytes)}',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar al asistente financiero.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar al asistente: $e');
+    }
+  }
+
   void dispose() {
     _client.close();
   }

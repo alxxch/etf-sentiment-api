@@ -175,4 +175,133 @@ class PortfolioProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Sincroniza de forma reactiva el estado financiero ante mutaciones ordenadas por voz (Fase 12).
+  /// Si el action_type es DCA_SIMULATED o SAVINGS_PLAN_UPDATED, actualiza los sliders y
+  /// la distribución de activos en tiempo real sin requerir interacción manual del usuario.
+  Future<void> applyAssistantPayload(
+    String actionType,
+    Map<String, dynamic> dataPayload,
+  ) async {
+    try {
+      final normAction = actionType.toUpperCase();
+
+      if (normAction == 'DCA_SIMULATED' || normAction == 'SIMULATE_DCA_PLAN') {
+        final params = dataPayload['simulation_parameters'] as Map<String, dynamic>?;
+        if (params != null) {
+          if (params['monthly_deposit'] != null) {
+            _monthlyDeposit = (params['monthly_deposit'] as num).toDouble();
+          }
+          if (params['allocation_equity_pct'] != null) {
+            _allocationEquityPct = (params['allocation_equity_pct'] as num).toDouble();
+          }
+          if (params['allocation_gold_pct'] != null) {
+            _allocationGoldPct = (params['allocation_gold_pct'] as num).toDouble();
+          }
+          if (params['months'] != null) {
+            _simulationMonths = (params['months'] as num).toInt();
+          }
+        }
+
+        // Si el payload contiene el objeto de simulación completo, actualizarlo directamente
+        if (dataPayload['simulation'] != null &&
+            dataPayload['simulation'] is Map<String, dynamic>) {
+          _simulation = DcaSimulationResult.fromJson(
+            dataPayload['simulation'] as Map<String, dynamic>,
+          );
+        } else {
+          // Si no vino completo, recalcular simulación matemáticamente en segundo plano
+          await runSimulation(silent: true);
+        }
+
+        // Sincronizar reactivamente el PieChart de la cartera principal si existe
+        if (_portfolio != null && _portfolio!.assetAllocation.isNotEmpty) {
+          final updatedAllocation = _portfolio!.assetAllocation.map((item) {
+            final newPct = item.isGold ? _allocationGoldPct : _allocationEquityPct;
+            return AssetAllocationItem(
+              ticker: item.ticker,
+              assetClass: item.assetClass,
+              shares: item.shares,
+              currentPrice: item.currentPrice,
+              currentValue: item.currentValue,
+              allocationPct: newPct,
+              breakEvenPrice: item.breakEvenPrice,
+              pnl: item.pnl,
+              roiPct: item.roiPct,
+            );
+          }).toList();
+
+          _portfolio = PortfolioStatus(
+            id: _portfolio!.id,
+            userId: _portfolio!.userId,
+            userEmail: _portfolio!.userEmail,
+            userName: _portfolio!.userName,
+            name: _portfolio!.name,
+            currency: _portfolio!.currency,
+            initialBalance: _portfolio!.initialBalance,
+            totalInvested: _portfolio!.totalInvested,
+            currentValue: _portfolio!.currentValue,
+            pnl: _portfolio!.pnl,
+            roiPct: _portfolio!.roiPct,
+            marketSentimentScore: _portfolio!.marketSentimentScore,
+            assetAllocation: updatedAllocation,
+            savingsPlan: _portfolio!.savingsPlan,
+            transactions: _portfolio!.transactions,
+          );
+        }
+        notifyListeners();
+      } else if (normAction == 'SAVINGS_PLAN_UPDATED' ||
+          normAction == 'UPDATE_SAVINGS_PLAN') {
+        final planData = dataPayload['savings_plan'] as Map<String, dynamic>?;
+        if (planData != null) {
+          final updatedPlan = SavingsPlanConfig.fromJson(planData);
+          _monthlyDeposit = updatedPlan.monthlyDeposit;
+          _allocationEquityPct = updatedPlan.allocationEquityPct;
+          _allocationGoldPct = updatedPlan.allocationGoldPct;
+
+          if (_portfolio != null) {
+            final updatedAllocation = _portfolio!.assetAllocation.map((item) {
+              final newPct = item.isGold ? _allocationGoldPct : _allocationEquityPct;
+              return AssetAllocationItem(
+                ticker: item.ticker,
+                assetClass: item.assetClass,
+                shares: item.shares,
+                currentPrice: item.currentPrice,
+                currentValue: item.currentValue,
+                allocationPct: newPct,
+                breakEvenPrice: item.breakEvenPrice,
+                pnl: item.pnl,
+                roiPct: item.roiPct,
+              );
+            }).toList();
+
+            _portfolio = PortfolioStatus(
+              id: _portfolio!.id,
+              userId: _portfolio!.userId,
+              userEmail: _portfolio!.userEmail,
+              userName: _portfolio!.userName,
+              name: _portfolio!.name,
+              currency: _portfolio!.currency,
+              initialBalance: _portfolio!.initialBalance,
+              totalInvested: _portfolio!.totalInvested,
+              currentValue: _portfolio!.currentValue,
+              pnl: _portfolio!.pnl,
+              roiPct: _portfolio!.roiPct,
+              marketSentimentScore: _portfolio!.marketSentimentScore,
+              assetAllocation: updatedAllocation,
+              savingsPlan: updatedPlan,
+              transactions: _portfolio!.transactions,
+            );
+          }
+        }
+        await runSimulation(silent: true);
+        notifyListeners();
+      } else if (normAction == 'PORTFOLIO_QUERY' ||
+          normAction == 'GET_PORTFOLIO_SUMMARY') {
+        await loadPortfolio(force: true);
+      }
+    } catch (e) {
+      debugPrint('[PortfolioProvider] Error aplicando payload del asistente: $e');
+    }
+  }
 }

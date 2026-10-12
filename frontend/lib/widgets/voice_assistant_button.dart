@@ -2,11 +2,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../providers/portfolio_provider.dart';
 import '../providers/voice_provider.dart';
 import '../theme/app_colors.dart';
 
 /// Botón interactivo del asistente de voz con halo reactivo estilo Apple Finance
-/// y previsualización de transcripción en tiempo real.
+/// y previsualización de transcripción y respuesta multimodal en tiempo real (Fase 12).
 class VoiceAssistantButton extends StatefulWidget {
   const VoiceAssistantButton({super.key});
 
@@ -48,11 +49,20 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
   Widget build(BuildContext context) {
     return Consumer<VoiceProvider>(
       builder: (context, voice, child) {
+        // Conexión reactiva con PortfolioProvider si está disponible en el árbol
+        try {
+          final portfolio = context.read<PortfolioProvider>();
+          voice.attachPortfolioProvider(portfolio);
+        } catch (_) {}
+
         final isListening = voice.isListening;
         final isProcessing = voice.isProcessing;
+        final isSpeaking = voice.isSpeaking;
         final hasError = voice.hasError;
 
-        if (isListening) {
+        final isAnimatedState = isListening || isSpeaking;
+
+        if (isAnimatedState) {
           if (!_pulseController.isAnimating) {
             _pulseController.repeat(reverse: true);
           }
@@ -63,20 +73,27 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
           }
         }
 
-        final showOverlayCard = isListening || isProcessing || hasError;
+        final showOverlayCard =
+            isListening || isProcessing || isSpeaking || hasError;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // 1. Tarjeta flotante con transcripción en vivo
+            // 1. Tarjeta flotante con transcripción / respuesta en vivo
             if (showOverlayCard) ...[
               _buildLiveTranscriptionCard(context, voice),
               const SizedBox(height: 12.0),
             ],
 
             // 2. Botón pulsante con Halo Siri / Apple Intelligence
-            _buildMicrophoneFab(voice, isListening, isProcessing, hasError),
+            _buildMicrophoneFab(
+              voice,
+              isListening,
+              isProcessing,
+              isSpeaking,
+              hasError,
+            ),
           ],
         );
       },
@@ -100,9 +117,11 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
         border: Border.all(
           color: voice.isListening
               ? AppColors.aiAccent.withValues(alpha: 0.6)
-              : (voice.hasError
-                  ? AppColors.bearish.withValues(alpha: 0.6)
-                  : AppColors.cardBorder),
+              : (voice.isSpeaking
+                  ? AppColors.bullish.withValues(alpha: 0.6)
+                  : (voice.hasError
+                      ? AppColors.bearish.withValues(alpha: 0.6)
+                      : AppColors.cardBorder)),
           width: 1.2,
         ),
         boxShadow: [
@@ -117,6 +136,12 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
               blurRadius: 24.0,
               spreadRadius: 2.0,
             ),
+          if (voice.isSpeaking)
+            BoxShadow(
+              color: AppColors.bullish.withValues(alpha: 0.2),
+              blurRadius: 24.0,
+              spreadRadius: 2.0,
+            ),
         ],
       ),
       child: Column(
@@ -127,21 +152,27 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  _buildStatusIndicator(voice),
-                  const SizedBox(width: 8.0),
-                  Text(
-                    _getStatusTitle(voice),
-                    style: TextStyle(
-                      color: _getStatusColor(voice),
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
+              Expanded(
+                child: Row(
+                  children: [
+                    _buildStatusIndicator(voice),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        _getStatusTitle(voice),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _getStatusColor(voice),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8.0),
               GestureDetector(
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -149,7 +180,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                 },
                 child: Container(
                   padding: const EdgeInsets.all(4.0),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.surfaceSecondary,
                     shape: BoxShape.circle,
                   ),
@@ -165,7 +196,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
 
           const SizedBox(height: 12.0),
 
-          // Texto capturado en vivo o Placeholder guía
+          // Texto capturado en vivo o respuesta hablada
           if (voice.hasError) ...[
             Text(
               voice.errorMessage ?? 'Ocurrió un error inesperado de audio.',
@@ -176,6 +207,42 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                 height: 1.4,
               ),
             ),
+          ] else if (voice.isSpeaking) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.volume_up_rounded,
+                  color: AppColors.bullish,
+                  size: 20.0,
+                ),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Text(
+                    voice.assistantResponse.isNotEmpty
+                        ? voice.assistantResponse
+                        : 'Respuesta procesada correctamente.',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (voice.transcribedText.isNotEmpty) ...[
+              const SizedBox(height: 8.0),
+              Text(
+                'Tú: "${voice.transcribedText}"',
+                style: const TextStyle(
+                  color: AppColors.textTertiary,
+                  fontSize: 11.5,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ] else if (voice.isProcessing) ...[
             const Row(
               children: [
@@ -242,19 +309,22 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
     VoiceProvider voice,
     bool isListening,
     bool isProcessing,
+    bool isSpeaking,
     bool hasError,
   ) {
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
-        final pulseScale = isListening ? 1.0 + (_pulseAnimation.value * 0.18) : 1.0;
-        final pulseGlow = isListening ? _pulseAnimation.value : 0.0;
+        final isPulsing = isListening || isSpeaking;
+        final pulseScale =
+            isPulsing ? 1.0 + (_pulseAnimation.value * 0.18) : 1.0;
+        final pulseGlow = isPulsing ? _pulseAnimation.value : 0.0;
 
         return Stack(
           alignment: Alignment.center,
           children: [
             // Halo concéntrico exterior (Siri / Apple Finance pulse)
-            if (isListening)
+            if (isPulsing)
               Container(
                 width: 68.0 * pulseScale,
                 height: 68.0 * pulseScale,
@@ -262,8 +332,10 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.aiAccent.withValues(alpha: 0.45 * (1.0 - pulseGlow * 0.5)),
-                      AppColors.bullish.withValues(alpha: 0.15 * (1.0 - pulseGlow * 0.5)),
+                      (isSpeaking ? AppColors.bullish : AppColors.aiAccent)
+                          .withValues(alpha: 0.45 * (1.0 - pulseGlow * 0.5)),
+                      AppColors.bullish
+                          .withValues(alpha: 0.15 * (1.0 - pulseGlow * 0.5)),
                       Colors.transparent,
                     ],
                     stops: const [0.3, 0.7, 1.0],
@@ -280,14 +352,22 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                 height: 56.0,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isListening
-                      ? AppColors.aiAccent
-                      : (hasError ? AppColors.bearishSoft : AppColors.cardSurface),
+                  color: isSpeaking
+                      ? AppColors.bullish
+                      : (isListening
+                          ? AppColors.aiAccent
+                          : (hasError
+                              ? AppColors.bearishSoft
+                              : AppColors.cardSurface)),
                   border: Border.all(
-                    color: isListening
+                    color: isSpeaking
                         ? AppColors.textPrimary
-                        : (hasError ? AppColors.bearish : AppColors.cardBorder),
-                    width: isListening ? 2.0 : 1.2,
+                        : (isListening
+                            ? AppColors.textPrimary
+                            : (hasError
+                                ? AppColors.bearish
+                                : AppColors.cardBorder)),
+                    width: (isListening || isSpeaking) ? 2.0 : 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -298,6 +378,12 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                     if (isListening)
                       BoxShadow(
                         color: AppColors.aiAccent.withValues(alpha: 0.6),
+                        blurRadius: 16.0,
+                        spreadRadius: 2.0,
+                      ),
+                    if (isSpeaking)
+                      BoxShadow(
+                        color: AppColors.bullish.withValues(alpha: 0.6),
                         blurRadius: 16.0,
                         spreadRadius: 2.0,
                       ),
@@ -315,12 +401,14 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                           ),
                         )
                       : Icon(
-                          isListening
-                              ? Icons.mic_rounded
-                              : (hasError
-                                  ? Icons.mic_off_rounded
-                                  : Icons.mic_none_rounded),
-                          color: isListening
+                          isSpeaking
+                              ? Icons.volume_up_rounded
+                              : (isListening
+                                  ? Icons.mic_rounded
+                                  : (hasError
+                                      ? Icons.mic_off_rounded
+                                      : Icons.mic_none_rounded)),
+                          color: (isListening || isSpeaking)
                               ? AppColors.textPrimary
                               : (hasError
                                   ? AppColors.bearish
@@ -357,6 +445,29 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
         ),
       );
     }
+    if (voice.isSpeaking) {
+      return AnimatedBuilder(
+        animation: _pulseAnimation,
+        builder: (context, child) {
+          return Container(
+            width: 8.0,
+            height: 8.0,
+            decoration: BoxDecoration(
+              color: AppColors.bullish,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.bullish
+                      .withValues(alpha: 0.4 + (_pulseAnimation.value * 0.4)),
+                  blurRadius: 6.0,
+                  spreadRadius: 1.0,
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
@@ -364,11 +475,11 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
           width: 8.0,
           height: 8.0,
           decoration: BoxDecoration(
-            color: AppColors.bullish,
+            color: AppColors.aiAccent,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.bullish
+                color: AppColors.aiAccent
                     .withValues(alpha: 0.4 + (_pulseAnimation.value * 0.4)),
                 blurRadius: 6.0,
                 spreadRadius: 1.0,
@@ -381,12 +492,14 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
   }
 
   String _getStatusTitle(VoiceProvider voice) {
+    if (voice.isSpeaking) return 'ASISTENTE RESPONDIENDO...';
     if (voice.isProcessing) return 'PROCESANDO...';
     if (voice.hasError) return 'ERROR DE AUDIO';
     return 'ESCUCHANDO...';
   }
 
   Color _getStatusColor(VoiceProvider voice) {
+    if (voice.isSpeaking) return AppColors.bullish;
     if (voice.isProcessing) return AppColors.gold;
     if (voice.hasError) return AppColors.bearish;
     return AppColors.aiAccent;

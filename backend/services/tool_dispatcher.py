@@ -119,6 +119,7 @@ def execute_simulate_dca_plan(args: Dict[str, Any], db: Session) -> Dict[str, An
             "current_equity_price": simulation.get("current_equity_price"),
             "current_gold_price": simulation.get("current_gold_price"),
         },
+        "simulation": simulation,
         "steps_count": len(simulation.get("steps", [])),
     }
 

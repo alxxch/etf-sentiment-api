@@ -270,9 +270,14 @@ class AssistantChatResponse(BaseModel):
         description="Respuesta redactada en lenguaje natural por Gemini",
         examples=["He simulado una aportación mensual de 100€ al oro..."],
     )
-    action_executed: str = Field(
+    action_type: str = Field(
         ...,
-        description="Herramienta ejecutada (ej: simulate_dca_plan, get_portfolio_summary) o GENERAL_QUERY",
+        description="Tipo normalizado de acción ejecutada (ej: PORTFOLIO_QUERY, DCA_SIMULATED, SAVINGS_PLAN_UPDATED, GENERAL_QUERY)",
+        examples=["DCA_SIMULATED"],
+    )
+    action_executed: Optional[str] = Field(
+        default=None,
+        description="Nombre de la herramienta o función ejecutada (ej: simulate_dca_plan)",
         examples=["simulate_dca_plan"],
     )
     tool_args: Dict[str, Any] = Field(

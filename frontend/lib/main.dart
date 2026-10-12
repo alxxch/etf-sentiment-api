@@ -81,8 +81,12 @@ class EtfSentimentApp extends StatelessWidget {
         if (voiceProvider != null)
           ChangeNotifierProvider<VoiceProvider>.value(value: voiceProvider!)
         else
-          ChangeNotifierProvider<VoiceProvider>(
-            create: (_) => VoiceProvider(),
+          ChangeNotifierProxyProvider<PortfolioProvider, VoiceProvider>(
+            create: (ctx) => VoiceProvider(
+              portfolioProvider: ctx.read<PortfolioProvider>(),
+            ),
+            update: (_, portfolio, voice) =>
+                (voice ?? VoiceProvider())..attachPortfolioProvider(portfolio),
           ),
       ],
       child: app,

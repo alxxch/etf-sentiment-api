@@ -8,8 +8,8 @@ from elevenlabs.client import ElevenLabs
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv()
 
-# Voz predeterminada con tono profesional y neutro para análisis financiero
-DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"  # George (Multilingual, claro y narrativo)
+# Voz corporativa financiera hiperrealista configurada para el asistente (Fase 12)
+DEFAULT_VOICE_ID = "t9LRTh3y1ioN00e9wsNh"
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 
 
