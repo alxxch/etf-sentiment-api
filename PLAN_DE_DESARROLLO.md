@@ -429,5 +429,31 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Ejecución síncrona directa de tareas Celery (sin worker) para evaluar umbrales y persistencia en BD.
   - [x] Pruebas de integración HTTP de listado y marcado de lectura con `TestClient` (9/9 tests pasando 100%).
 
+### Fase 16: Interfaz de Gestión Patrimonial y Cuentas (Frontend Flutter)
+**Objetivo:** Desarrollar la experiencia de usuario completa para la gestión patrimonial, integración de Open Banking con brokers externos (Trade Republic), visualización del rebalanceo inteligente y bandeja interactiva de notificaciones y alertas en tiempo real con diseño Apple Finance.
+
+- [x] 16.1 Modelos y Servicios API en Dart (`frontend/lib/models/` y `services/api_service.dart`):
+  - [x] Modelos: `BrokerAccount` (con helpers `isSynced`, `isPending`, `isError`), `RebalanceAdvice` y `AssetRebalanceItem` (con métricas de drift y directriz de compra), y `NotificationItem` (con categorización `isOpportunity`, `isDrift`, `isSystem` y `copyWith`).
+  - [x] Métodos en `ApiService`: `fetchBrokerAccounts`, `linkBrokerAccount`, `syncBrokerAccount`, `fetchRebalanceAdvice`, `fetchNotifications` y `markNotificationAsRead`.
+- [x] 16.2 Gestión de Estado Reactiva (`frontend/lib/providers/`):
+  - [x] `BankingProvider`: gestión de brokers conectados, estado de carga reactivo y sincronización bajo demanda con refresco automático del portfolio.
+  - [x] `NotificationProvider`: gestión de alertas, contador reactivo de no leídas (`unreadCount`, `hasUnread`) y marcado individual y global como leídas con optimistic updates.
+  - [x] `PortfolioProvider`: integración de `RebalanceAdvice`, método `loadRebalanceAdvice` y manejo de payloads del asistente multimodal (`REBALANCE_ADVICE_QUERIED`).
+  - [x] Inyección en `MultiProvider` en `lib/main.dart`.
+- [x] 16.3 Interfaz de Notificaciones y Rebalanceo Dinámico:
+  - [x] `NotificationsPanel` y `NotificationBellButton` (`widgets/notifications_panel.dart`): modal inferior con estilo Apple Finance, indicador visual de tipo de alerta (oportunidad, drift, sistema), badge de no leídas en cabeceras y acción para marcar como leídas.
+  - [x] `RebalanceCardWidget` (`widgets/rebalance_card_widget.dart`): tarjeta destacada en "Mi Cartera" con barras de progreso comparativas (Actual vs Objetivo), badges de desvío porcentual y recomendación cuantitativa en euros.
+- [x] 16.4 Interfaz de Open Banking y Brokers (`screens/banking_screen.dart`):
+  - [x] Pestaña "Cuentas" en el menú inferior (`BottomNavigationBar`).
+  - [x] Tarjetas de brokers vinculados (Trade Republic) con estado de sincronización visual (`SINCRONIZADO`, `PENDIENTE`, `ERROR`) y fecha de actualización.
+  - [x] Botón "Sincronizar Ahora" con indicador spinner y modal interactivo para conectar nuevos brokers.
+- [x] 16.5 Sincronización con Asistente Multimodal de Voz:
+  - [x] Enrutamiento de acciones `REBALANCE_ADVICE_QUERIED` (navegación a la pestaña "Mi Cartera") y `NOTIFICATIONS_QUERIED` (apertura automática del panel de alertas) mientras ElevenLabs sintetiza la respuesta.
+- [x] 16.6 Testing de Frontend y Verificación de Idempotencia (`frontend/test/phase16_test.dart`):
+  - [x] Pruebas unitarias de serialización de modelos y helpers de estado.
+  - [x] Pruebas unitarias de `BankingProvider` y `NotificationProvider`.
+  - [x] Pruebas de widgets (`RebalanceCardWidget`, `BankingScreen` y navegación de 3 pestañas).
+  - [x] 20/20 tests de Flutter pasando al 100% sin regresiones.
+
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import '../models/etf_data.dart';
 import '../models/etf_history_entry.dart';
 import '../models/portfolio_models.dart';
+import '../models/broker_account.dart';
+import '../models/notification_item.dart';
+import '../models/rebalance_advice.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -286,6 +289,244 @@ class ApiService {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Error de red al consultar al asistente: $e');
+    }
+  }
+
+  // ==========================================================================
+  // Open Banking & Broker Connectivity (Fase 13 & 16)
+  // ==========================================================================
+
+  /// Consulta las cuentas de brokers vinculadas por el usuario.
+  Future<List<BrokerAccount>> fetchBrokerAccounts({int userId = 1}) async {
+    final uri = Uri.parse('$baseUrl/api/v1/banking/accounts?user_id=$userId');
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+        return data
+            .map((item) => BrokerAccount.fromJson(item as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw ApiException(
+          'Error obteniendo cuentas de broker (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar cuentas de broker.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar cuentas de broker: $e');
+    }
+  }
+
+  /// Vincula una nueva cuenta de broker externo para el usuario.
+  Future<BrokerAccount> linkBrokerAccount({
+    required String brokerName,
+    required String accountReference,
+    int userId = 1,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/banking/link-account');
+    final payload = {
+      'broker_name': brokerName,
+      'account_reference': accountReference,
+      'user_id': userId,
+    };
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(payload),
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return BrokerAccount.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error vinculando broker (${response.statusCode}): ${utf8.decode(response.bodyBytes)}',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException('Tiempo de espera agotado al vincular broker.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al vincular broker: $e');
+    }
+  }
+
+  /// Dispara la sincronización bajo demanda e idempotente para una cuenta de broker.
+  Future<Map<String, dynamic>> syncBrokerAccount(int accountId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/banking/sync/$accountId');
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return data;
+      } else {
+        throw ApiException(
+          'Error al sincronizar broker (${response.statusCode}): ${utf8.decode(response.bodyBytes)}',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al sincronizar broker.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al sincronizar broker: $e');
+    }
+  }
+
+  // ==========================================================================
+  // Motor de Rebalanceo Inteligente (Fase 14 & 16)
+  // ==========================================================================
+
+  /// Consulta el análisis cuantitativo de rebalanceo y desviación de cartera.
+  Future<RebalanceAdvice> fetchRebalanceAdvice({
+    int? portfolioId,
+    double? customDeposit,
+  }) async {
+    final queryParams = <String, String>{};
+    if (portfolioId != null) {
+      queryParams['portfolio_id'] = portfolioId.toString();
+    }
+    if (customDeposit != null) {
+      queryParams['custom_deposit'] = customDeposit.toString();
+    }
+
+    final uri = Uri.parse('$baseUrl/api/v1/fintech/rebalance-advice')
+        .replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return RebalanceAdvice.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error obteniendo consejo de rebalanceo (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar consejo de rebalanceo.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar rebalanceo: $e');
+    }
+  }
+
+  // ==========================================================================
+  // Alertas y Notificaciones Proactivas (Fase 15 & 16)
+  // ==========================================================================
+
+  /// Obtiene la lista de notificaciones del usuario ordenadas por fecha reciente.
+  Future<List<NotificationItem>> fetchNotifications({
+    int userId = 1,
+    bool unreadOnly = false,
+    int limit = 50,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/api/v1/notifications?user_id=$userId&unread_only=$unreadOnly&limit=$limit',
+    );
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+        return data
+            .map((item) =>
+                NotificationItem.fromJson(item as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw ApiException(
+          'Error obteniendo notificaciones (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar notificaciones.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar notificaciones: $e');
+    }
+  }
+
+  /// Marca una notificación como leída.
+  Future<NotificationItem> markNotificationAsRead(int notificationId) async {
+    final uri = Uri.parse('$baseUrl/api/v1/notifications/$notificationId/read');
+
+    try {
+      final response = await _client
+          .patch(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return NotificationItem.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error al marcar notificación como leída (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al marcar notificación.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error al marcar notificación: $e');
     }
   }
 

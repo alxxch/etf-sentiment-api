@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/portfolio_models.dart';
+import '../models/rebalance_advice.dart';
 import '../services/api_service.dart';
 
 class PortfolioProvider extends ChangeNotifier {
@@ -10,8 +11,10 @@ class PortfolioProvider extends ChangeNotifier {
 
   PortfolioStatus? _portfolio;
   DcaSimulationResult? _simulation;
+  RebalanceAdvice? _rebalanceAdvice;
   bool _isLoading = false;
   bool _isSimulating = false;
+  bool _isLoadingRebalance = false;
   bool _hasLoaded = false;
   String? _errorMessage;
 
@@ -25,10 +28,13 @@ class PortfolioProvider extends ChangeNotifier {
   // Getters
   PortfolioStatus? get portfolio => _portfolio;
   DcaSimulationResult? get simulation => _simulation;
+  RebalanceAdvice? get rebalanceAdvice => _rebalanceAdvice;
   bool get isLoading => _isLoading;
   bool get isSimulating => _isSimulating;
+  bool get isLoadingRebalance => _isLoadingRebalance;
   bool get hasLoaded => _hasLoaded;
   bool get hasData => _portfolio != null;
+  bool get hasRebalanceAdvice => _rebalanceAdvice != null;
   String? get errorMessage => _errorMessage;
 
   double get monthlyDeposit => _monthlyDeposit;
@@ -66,10 +72,31 @@ class PortfolioProvider extends ChangeNotifier {
 
       // Ejecutar simulación inicial en segundo plano
       await runSimulation(silent: true);
+
+      // Cargar consejo de rebalanceo cuantitativo
+      await loadRebalanceAdvice(customDeposit: _monthlyDeposit);
     } catch (e) {
       _errorMessage = 'Error al cargar cartera: $e';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Consulta el consejo y métricas de rebalanceo inteligente
+  Future<void> loadRebalanceAdvice({double? customDeposit}) async {
+    _isLoadingRebalance = true;
+    notifyListeners();
+
+    try {
+      final advice = await _apiService.fetchRebalanceAdvice(
+        customDeposit: customDeposit ?? _monthlyDeposit,
+      );
+      _rebalanceAdvice = advice;
+    } catch (e) {
+      debugPrint('[PortfolioProvider] Error al cargar rebalanceo: $e');
+    } finally {
+      _isLoadingRebalance = false;
       notifyListeners();
     }
   }
@@ -295,13 +322,31 @@ class PortfolioProvider extends ChangeNotifier {
           }
         }
         await runSimulation(silent: true);
-        notifyListeners();
       } else if (normAction == 'PORTFOLIO_QUERY' ||
           normAction == 'GET_PORTFOLIO_SUMMARY') {
         await loadPortfolio(force: true);
+      } else if (normAction == 'REBALANCE_ADVICE_QUERIED' ||
+          normAction == 'CALCULATE_PORTFOLIO_REBALANCE' ||
+          normAction == 'PORTFOLIO_REBALANCE') {
+        if (dataPayload['rebalance_advice'] != null &&
+            dataPayload['rebalance_advice'] is Map<String, dynamic>) {
+          _rebalanceAdvice = RebalanceAdvice.fromJson(
+            dataPayload['rebalance_advice'] as Map<String, dynamic>,
+          );
+        } else {
+          await loadRebalanceAdvice();
+        }
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('[PortfolioProvider] Error aplicando payload del asistente: $e');
     }
   }
+
+  @visibleForTesting
+  void setRebalanceAdviceForTesting(RebalanceAdvice? advice) {
+    _rebalanceAdvice = advice;
+    notifyListeners();
+  }
 }
+

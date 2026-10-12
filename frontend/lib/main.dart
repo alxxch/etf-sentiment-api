@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'providers/banking_provider.dart';
 import 'providers/etf_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/portfolio_provider.dart';
 import 'providers/voice_provider.dart';
 import 'screens/home_screen.dart';
@@ -24,6 +26,8 @@ void main() {
 class EtfSentimentApp extends StatelessWidget {
   final EtfProvider? etfProvider;
   final PortfolioProvider? portfolioProvider;
+  final BankingProvider? bankingProvider;
+  final NotificationProvider? notificationProvider;
   final AudioService? audioService;
   final VoiceProvider? voiceProvider;
 
@@ -31,6 +35,8 @@ class EtfSentimentApp extends StatelessWidget {
     super.key,
     this.etfProvider,
     this.portfolioProvider,
+    this.bankingProvider,
+    this.notificationProvider,
     this.audioService,
     this.voiceProvider,
   });
@@ -71,6 +77,20 @@ class EtfSentimentApp extends StatelessWidget {
         else
           ChangeNotifierProvider<PortfolioProvider>(
             create: (_) => PortfolioProvider(),
+          ),
+        if (bankingProvider != null)
+          ChangeNotifierProvider<BankingProvider>.value(
+              value: bankingProvider!)
+        else
+          ChangeNotifierProvider<BankingProvider>(
+            create: (_) => BankingProvider(),
+          ),
+        if (notificationProvider != null)
+          ChangeNotifierProvider<NotificationProvider>.value(
+              value: notificationProvider!)
+        else
+          ChangeNotifierProvider<NotificationProvider>(
+            create: (_) => NotificationProvider(),
           ),
         if (audioService != null)
           ChangeNotifierProvider<AudioService>.value(value: audioService!)

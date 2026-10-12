@@ -5,7 +5,7 @@ de datos PostgreSQL (SQLAlchemy) y el motor de simulación DCA.
 from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
 
-from db.models import EtfHistory, Portfolio, SavingsPlan, User
+from db.models import EtfHistory, Notification, Portfolio, SavingsPlan, User
 from db.seed import seed_demo_user
 from routers.fintech import _build_portfolio_status
 from services.dca_simulator import get_current_asset_price, simulate_dca
@@ -224,12 +224,35 @@ def execute_calculate_portfolio_rebalance(
     return {
         "status": "success",
         "rebalance_data": rebalance_data,
+        "rebalance_advice": rebalance_data,
         "summary_message": rebalance_data.get("summary_message", ""),
         "rebalance_status": rebalance_data.get("rebalance_status", "BALANCED"),
         "current_portfolio_value": rebalance_data.get("current_portfolio_value", 0.0),
         "monthly_deposit": rebalance_data.get("monthly_deposit", 200.0),
         "post_rebalance_portfolio_value": rebalance_data.get("post_rebalance_portfolio_value", 0.0),
         "assets": rebalance_data.get("assets", []),
+    }
+
+
+def execute_get_user_notifications(
+    args: Dict[str, Any],
+    db: Session,
+    user_id: int = 1,
+) -> Dict[str, Any]:
+    """Obtiene las notificaciones recientes del usuario y el conteo de no leídas."""
+    unread_only = bool(args.get("unread_only", False))
+    query = db.query(Notification).filter(Notification.user_id == user_id)
+    if unread_only:
+        query = query.filter(Notification.is_read == False)
+    notifications = query.order_by(Notification.timestamp.desc()).limit(10).all()
+    notifs_list = [n.to_dict() for n in notifications]
+    unread_count = sum(1 for n in notifs_list if not n.get("is_read"))
+
+    return {
+        "status": "success",
+        "notifications": notifs_list,
+        "unread_count": unread_count,
+        "total_returned": len(notifs_list),
     }
 
 
@@ -257,8 +280,12 @@ def dispatch_tool_call(
     elif clean_name == "calculate_portfolio_rebalance":
         return execute_calculate_portfolio_rebalance(args=args, db=db, user_id=user_id)
 
+    elif clean_name == "get_user_notifications":
+        return execute_get_user_notifications(args=args, db=db, user_id=user_id)
+
     else:
         return {
             "status": "error",
             "message": f"Herramienta desconocida o no implementada: '{clean_name}'.",
         }
+

@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/etf_data.dart';
 import '../providers/etf_provider.dart';
+import '../providers/notification_provider.dart';
+import '../providers/voice_provider.dart';
 import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
 import '../widgets/etf_card_widget.dart';
 import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
+import '../widgets/notifications_panel.dart';
 import '../widgets/sentiment_gauge_widget.dart';
 import '../widgets/voice_assistant_button.dart';
+import 'banking_screen.dart';
 import 'portfolio_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,6 +37,23 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<EtfProvider>().fetchInitialData();
+        context.read<NotificationProvider>().loadNotifications();
+
+        try {
+          final voice = context.read<VoiceProvider>();
+          voice.onActionExecuted = (actionType, payload) {
+            if (!mounted) return;
+            if (actionType == 'REBALANCE_ADVICE_QUERIED' ||
+                actionType == 'PORTFOLIO_REBALANCE' ||
+                actionType == 'PORTFOLIO_QUERY') {
+              setState(() {
+                _currentTabIndex = 1;
+              });
+            } else if (actionType == 'NOTIFICATIONS_QUERIED') {
+              showNotificationsPanel(context);
+            }
+          };
+        } catch (_) {}
       }
     });
   }
@@ -68,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildMarketTab(provider),
               const PortfolioScreen(),
+              const BankingScreen(),
             ],
           ),
           bottomNavigationBar: _buildBottomNavigationBar(),
@@ -116,6 +138,12 @@ class _HomeScreenState extends State<HomeScreen> {
             activeIcon:
                 Icon(Icons.pie_chart_rounded, color: AppColors.bullish),
             label: 'Mi Cartera',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_outlined),
+            activeIcon:
+                Icon(Icons.account_balance_rounded, color: AppColors.gold),
+            label: 'Cuentas',
           ),
         ],
       ),
@@ -173,59 +201,65 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          // Badge dinámico de estado en vivo
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSecondary,
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: AppColors.cardBorder.withValues(alpha: 0.5),
+          Row(
+            children: [
+              // Badge dinámico de estado en vivo
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(
+                    color: AppColors.cardBorder.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (provider.isLoading) ...[
+                      const SizedBox(
+                        width: 8.0,
+                        height: 8.0,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.8,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.aiAccent),
+                        ),
+                      ),
+                      const SizedBox(width: 6.0),
+                      const Text(
+                        'SINCRONIZANDO',
+                        style: TextStyle(
+                          color: AppColors.aiAccent,
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ] else ...[
+                      Icon(
+                        Icons.circle,
+                        color: provider.hasData ? AppColors.bullish : AppColors.bearish,
+                        size: 7.0,
+                      ),
+                      const SizedBox(width: 6.0),
+                      Text(
+                        provider.hasData ? 'LIVE • FASTAPI' : 'OFFLINE',
+                        style: TextStyle(
+                          color: provider.hasData
+                              ? AppColors.textSecondary
+                              : AppColors.bearish,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (provider.isLoading) ...[
-                  const SizedBox(
-                    width: 8.0,
-                    height: 8.0,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.8,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.aiAccent),
-                    ),
-                  ),
-                  const SizedBox(width: 6.0),
-                  const Text(
-                    'SINCRONIZANDO',
-                    style: TextStyle(
-                      color: AppColors.aiAccent,
-                      fontSize: 10.0,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ] else ...[
-                  Icon(
-                    Icons.circle,
-                    color: provider.hasData ? AppColors.bullish : AppColors.bearish,
-                    size: 7.0,
-                  ),
-                  const SizedBox(width: 6.0),
-                  Text(
-                    provider.hasData ? 'LIVE • FASTAPI' : 'OFFLINE',
-                    style: TextStyle(
-                      color: provider.hasData
-                          ? AppColors.textSecondary
-                          : AppColors.bearish,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              const SizedBox(width: 4.0),
+              const NotificationBellButton(),
+            ],
           ),
         ],
       ),

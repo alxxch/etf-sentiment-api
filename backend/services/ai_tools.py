@@ -140,6 +140,27 @@ def get_assistant_tools() -> types.Tool:
                 },
             },
         ),
+
+        # 6. Consulta de notificaciones y alertas proactivas
+        types.FunctionDeclaration(
+            name="get_user_notifications",
+            description=(
+                "Consulta las alertas y notificaciones del usuario (desviaciones de cartera, "
+                "oportunidades de compra por caídas de mercado y avisos del sistema). "
+                "Úsalo ante preguntas como '¿tengo alertas pendientes?', '¿hay notificaciones?', "
+                "'muéstrame mis avisos' o 'revisa mis notificaciones'."
+            ),
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "unread_only": {
+                        "type": "boolean",
+                        "description": "Si es True, devuelve solo alertas no leídas.",
+                    },
+                },
+            },
+        ),
     ]
 
     return types.Tool(function_declarations=declarations)
+

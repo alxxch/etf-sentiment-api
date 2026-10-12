@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/portfolio_models.dart';
 import '../providers/portfolio_provider.dart';
 import '../theme/app_colors.dart';
+import '../widgets/notifications_panel.dart';
+import '../widgets/rebalance_card_widget.dart';
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -76,58 +78,64 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
               ),
             ],
           ),
-          // Badge de estado
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSecondary,
-              borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(
-                color: AppColors.cardBorder.withValues(alpha: 0.5),
+          Row(
+            children: [
+              // Badge de estado
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(
+                    color: AppColors.cardBorder.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (provider.isLoading) ...[
+                      const SizedBox(
+                        width: 8.0,
+                        height: 8.0,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.8,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.aiAccent),
+                        ),
+                      ),
+                      const SizedBox(width: 6.0),
+                      const Text(
+                        'CARGANDO',
+                        style: TextStyle(
+                          color: AppColors.aiAccent,
+                          fontSize: 10.0,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ] else ...[
+                      const Icon(
+                        Icons.circle,
+                        color: AppColors.bullish,
+                        size: 7.0,
+                      ),
+                      const SizedBox(width: 6.0),
+                      const Text(
+                        'DCA ACTIVO',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (provider.isLoading) ...[
-                  const SizedBox(
-                    width: 8.0,
-                    height: 8.0,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.8,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(AppColors.aiAccent),
-                    ),
-                  ),
-                  const SizedBox(width: 6.0),
-                  const Text(
-                    'CARGANDO',
-                    style: TextStyle(
-                      color: AppColors.aiAccent,
-                      fontSize: 10.0,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ] else ...[
-                  const Icon(
-                    Icons.circle,
-                    color: AppColors.bullish,
-                    size: 7.0,
-                  ),
-                  const SizedBox(width: 6.0),
-                  const Text(
-                    'DCA ACTIVO',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              const SizedBox(width: 4.0),
+              const NotificationBellButton(),
+            ],
           ),
         ],
       ),
@@ -234,6 +242,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           children: [
             // 1. Tarjeta principal de Rendimiento y Valoración
             _buildPerformancePanel(portfolio),
+
+            // Tarjeta destacada de Consejo de Rebalanceo Inteligente (Fase 14 & 16)
+            if (provider.rebalanceAdvice != null) ...[
+              const SizedBox(height: 18.0),
+              RebalanceCardWidget(advice: provider.rebalanceAdvice!),
+            ],
 
             const SizedBox(height: 18.0),
 
