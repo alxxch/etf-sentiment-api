@@ -356,6 +356,14 @@ class PortfolioProvider extends ChangeNotifier {
   }
 
   @visibleForTesting
+  void setPortfolioForTesting(PortfolioStatus? portfolio) {
+    _portfolio = portfolio;
+    _hasLoaded = portfolio != null;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  @visibleForTesting
   void setRebalanceAdviceForTesting(RebalanceAdvice? advice) {
     _rebalanceAdvice = advice;
     notifyListeners();

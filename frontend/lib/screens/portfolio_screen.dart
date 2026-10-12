@@ -3,13 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/portfolio_models.dart';
 import '../providers/portfolio_provider.dart';
+import '../providers/voice_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/notifications_panel.dart';
 import '../widgets/rebalance_card_widget.dart';
 import '../widgets/spatial_portfolio_widget.dart';
 
 class PortfolioScreen extends StatefulWidget {
-  const PortfolioScreen({super.key});
+  final VoiceState? customVoiceState;
+  final VoiceProvider? customVoiceProvider;
+
+  const PortfolioScreen({
+    super.key,
+    this.customVoiceState,
+    this.customVoiceProvider,
+  });
 
   @override
   State<PortfolioScreen> createState() => _PortfolioScreenState();
@@ -228,6 +236,19 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       return const SizedBox.shrink();
     }
 
+    VoiceProvider? voiceProvider;
+    try {
+      voiceProvider =
+          widget.customVoiceProvider ?? Provider.of<VoiceProvider?>(context);
+    } catch (_) {
+      voiceProvider = null;
+    }
+
+    final voiceState =
+        widget.customVoiceState ?? voiceProvider?.state ?? VoiceState.idle;
+    final isVoiceActive = voiceState != VoiceState.idle;
+    final cardOpacity = isVoiceActive ? 0.35 : 1.0;
+
     return RefreshIndicator(
       color: AppColors.bullish,
       backgroundColor: AppColors.cardSurface,
@@ -240,29 +261,45 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Tarjeta principal de Rendimiento y Valoración
-            _buildPerformancePanel(portfolio),
+            // 1. Tarjeta principal de Rendimiento y Valoración (con oscurecimiento sutil)
+            AnimatedOpacity(
+              opacity: cardOpacity,
+              duration: const Duration(milliseconds: 300),
+              child: _buildPerformancePanel(portfolio),
+            ),
 
             // Tarjeta destacada de Consejo de Rebalanceo Inteligente (Fase 14 & 16)
             if (provider.rebalanceAdvice != null) ...[
               const SizedBox(height: 18.0),
-              RebalanceCardWidget(advice: provider.rebalanceAdvice!),
+              AnimatedOpacity(
+                opacity: cardOpacity,
+                duration: const Duration(milliseconds: 300),
+                child: RebalanceCardWidget(advice: provider.rebalanceAdvice!),
+              ),
             ],
 
             const SizedBox(height: 18.0),
 
-            // 2. Gráfico de Alocación Multiactivo (PieChart con fl_chart)
-            _buildAssetAllocationSection(portfolio),
+            // 2. Gráfico de Alocación Multiactivo y Diorama 3D (Fases 18-20)
+            _buildAssetAllocationSection(portfolio, cardOpacity),
 
             const SizedBox(height: 18.0),
 
             // 3. Simulador y Configuración interactiva DCA
-            _buildDcaSimulatorForm(provider),
+            AnimatedOpacity(
+              opacity: cardOpacity,
+              duration: const Duration(milliseconds: 300),
+              child: _buildDcaSimulatorForm(provider),
+            ),
 
             const SizedBox(height: 18.0),
 
             // 4. Historial de Transacciones DCA
-            _buildTransactionsSection(portfolio),
+            AnimatedOpacity(
+              opacity: cardOpacity,
+              duration: const Duration(milliseconds: 300),
+              child: _buildTransactionsSection(portfolio),
+            ),
           ],
         ),
       ),
@@ -450,9 +487,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   }
 
   // ==========================================================================
-  // 2. VISUALIZACIÓN ESPACIAL 3D & ASSET ALLOCATION (Fase 18)
+  // 2. VISUALIZACIÓN ESPACIAL 3D & ASSET ALLOCATION (Fases 18-20)
   // ==========================================================================
-  Widget _buildAssetAllocationSection(PortfolioStatus portfolio) {
+  Widget _buildAssetAllocationSection(
+      PortfolioStatus portfolio, double cardOpacity) {
     final allocation = portfolio.assetAllocation;
 
     return Container(
@@ -483,43 +521,58 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ASSET ALLOCATION 3D',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
+                AnimatedOpacity(
+                  opacity: cardOpacity,
+                  duration: const Duration(milliseconds: 300),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'ASSET ALLOCATION 3D',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Diorama Isométrico v6.0',
-                      style: TextStyle(
-                        color: AppColors.aiAccent,
-                        fontSize: 12.0,
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        'Diorama Isométrico v6.0',
+                        style: TextStyle(
+                          color: AppColors.aiAccent,
+                          fontSize: 12.0,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16.0),
 
-                // Motor de Renderizado 3D Espacial (Fase 18)
-                const SpatialPortfolioWidget(
+                // Motor de Renderizado 3D Espacial (Fases 18-20)
+                // Se mantiene a opacidad 1.0 para ser el foco espacial central
+                SpatialPortfolioWidget(
                   modelPath: 'assets/3d/placeholder.glb',
                   height: 280.0,
                   autoRotate: true,
+                  customVoiceState: widget.customVoiceState,
+                  customVoiceProvider: widget.customVoiceProvider,
                 ),
 
                 const SizedBox(height: 16.0),
-                const Divider(color: AppColors.cardBorder, height: 1.0),
-                const SizedBox(height: 12.0),
+                AnimatedOpacity(
+                  opacity: cardOpacity,
+                  duration: const Duration(milliseconds: 300),
+                  child: Column(
+                    children: [
+                      const Divider(color: AppColors.cardBorder, height: 1.0),
+                      const SizedBox(height: 12.0),
 
-                // Desglose detallado de los activos
-                ...allocation.map((item) => _buildAssetRow(item)),
+                      // Desglose detallado de los activos
+                      ...allocation.map((item) => _buildAssetRow(item)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
