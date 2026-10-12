@@ -9,6 +9,7 @@ import '../widgets/etf_card_widget.dart';
 import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
 import '../widgets/sentiment_gauge_widget.dart';
+import '../widgets/voice_assistant_button.dart';
 import 'portfolio_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -70,6 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           bottomNavigationBar: _buildBottomNavigationBar(),
+          floatingActionButton: const VoiceAssistantButton(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
       },
     );
