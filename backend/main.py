@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 
 from ai_service import analyze_sentiment
 from cleanup_history import cleanup_fallback_records
-from db import EtfHistory, get_db
+from db import EtfHistory, get_db, seed_demo_user
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
 app = FastAPI(
     title="Smart Market Sentiment & ETF Dashboard API",
     description="API REST para análisis de sentimiento, cotizaciones en tiempo real y persistencia histórica en PostgreSQL",
-    version="2.1.0",
+    version="3.0.0",
 )
 
 # Configuración de CORS para permitir conexiones desde Flutter (Web, Móvil, Desktop)
@@ -30,13 +30,18 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event() -> None:
-    """Evento de inicio: limpia registros artificiales generados por saturación de cuota previa."""
+    """Evento de inicio: limpia registros planos y asegura que el usuario demo existe."""
     try:
         deleted = cleanup_fallback_records()
         if deleted > 0:
             print(f"[startup] Limpieza inicial: {deleted} registros planos eliminados de etf_history.")
     except Exception as e:
         print(f"[startup] Advertencia durante la limpieza inicial: {e}")
+
+    try:
+        seed_demo_user()
+    except Exception as e:
+        print(f"[startup] Advertencia durante el seeding del usuario Demo: {e}")
 
 
 # ============================================================================

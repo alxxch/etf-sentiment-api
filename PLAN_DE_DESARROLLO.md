@@ -187,25 +187,31 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 7: Arquitectura de Datos Fintech (Backend)
 **Objetivo:** Diseñar e implementar el modelo de datos relacional para usuarios, carteras, transacciones y planes de ahorro en PostgreSQL mediante SQLAlchemy y migraciones con Alembic, junto con el motor de simulación de aportaciones periódicas (DCA).
 
-- [ ] 7.1 Modelado Relacional de Entidades Financieras (`backend/db/models.py`):
-  - [ ] Crear modelo `User`: identificador único (`id`), `email`, `username`, `hashed_password` (o UUID mock para sesión local) y `created_at`.
-  - [ ] Crear modelo `Portfolio`: relación 1:N con `User`, nombre de cartera (`name`), divisa base (`currency`, default "EUR"), capital inicial (`initial_balance`) y marcas temporales.
-  - [ ] Crear modelo `Transaction`: registro granular de compras y ventas de participaciones. Campos: `portfolio_id` (FK), `ticker` (ej: `VWCE.DE`, `EUNL.DE`, `8PSG.DE`), `asset_class` (`EQUITY` vs `COMMODITY_GOLD`), `shares` (cantidad de participaciones adquiridas, `Float`), `price_per_share` (precio de ejecución), `amount_invested` (capital invertido en EUR), `fee` (comisiones estimadas), `timestamp` e indicador `is_automated` (generada por DCA).
-  - [ ] Crear modelo `SavingsPlan`: definición del plan de ahorro recurrente. Campos: `portfolio_id` (FK), `user_id` (FK), `monthly_deposit` (aportación mensual en EUR), `frequency` (mensual/quincenal), `allocation_equity_pct` (porcentaje destinado a ETFs de renta variable, ej: 80%), `allocation_gold_pct` (porcentaje destinado a oro físico como activo refugio, ej: 20%), `start_date`, `is_active` y `last_execution_date`.
-  - [ ] Configurar relaciones ORM bidireccionales (`relationship`), índices en claves foráneas y métodos de serialización `to_dict()`.
-- [ ] 7.2 Migración de Esquema con Alembic (`backend/alembic`):
-  - [ ] Generar script de migración declarativa: `alembic revision --autogenerate -m "create_fintech_tables_user_portfolio_transaction_savingsplan"`.
-  - [ ] Validar restricciones de integridad referencial, tipos de datos numéricos de alta precisión (`Numeric`/`Float`) y valores por defecto.
-  - [ ] Aplicar migración a PostgreSQL en entorno Docker: `alembic upgrade head`.
-- [ ] 7.3 Motor de Simulación de Aportaciones Periódicas DCA (`backend/services/dca_simulator.py`):
-  - [ ] Desarrollar lógica de simulación DCA (Dollar Cost Averaging):
-    - [ ] Algoritmo de calendario financiero: iteración por fechas de aportación periódica mensual/quincenal en el rango temporal seleccionado.
-    - [ ] Lógica de reparto porcentual: división de la aportación (`monthly_deposit`) entre la cesta de renta variable (`allocation_equity_pct` dividido entre tickers de renta variable como `VWCE.DE` y `EUNL.DE`) y la cesta de cobertura en oro (`allocation_gold_pct` asignado a `8PSG.DE`).
-    - [ ] Consulta y cruce con precios históricos de ejecución: recuperar precios de cierre desde `etf_history` (o fallback a `yfinance` para fechas previas) para calcular participaciones compradas (`shares = amount / price`).
-    - [ ] Acumulación progresiva de saldo de participaciones, capital total desembolsado y cálculo del precio medio ponderado de compra (Break-Even / Cost Basis).
-- [ ] 7.4 Esquemas de Validación y DTOs con Pydantic (`backend/schemas/portfolio.py`):
-  - [ ] Definir schemas de entrada: `SavingsPlanCreateRequest`, `DcaSimulationRequest`.
-  - [ ] Definir schemas de salida: `TransactionResponse`, `SavingsPlanResponse`, `PortfolioSummaryResponse`, `DcaSimulationResultResponse`.
+- [x] 7.1 Modelado Relacional de Entidades Financieras (`backend/db/models.py`):
+  - [x] Crear modelo `User`: identificador único (`id`), `email`, `username` y `created_at`.
+  - [x] Crear modelo `Portfolio`: relación One-to-One con `User`, nombre de cartera (`name`), divisa base (`currency`, default "EUR"), capital inicial (`initial_balance`) y marcas temporales.
+  - [x] Crear modelo `Transaction`: registro granular de compras y ventas de participaciones. Campos: `portfolio_id` (FK), `ticker` (ej: `VWCE.DE`, `EUNL.DE`, `8PSG.DE`), `asset_class` (`EQUITY` vs `GOLD`), `shares` (cantidad de participaciones adquiridas, `Float`), `price_per_share` (precio de ejecución), `amount_invested` (capital invertido en EUR), `fee` (comisiones estimadas), `timestamp` e indicador `is_automated` (generada por DCA).
+  - [x] Crear modelo `SavingsPlan`: definición del plan de ahorro recurrente. Campos: `portfolio_id` (FK), `monthly_deposit` (aportación mensual en EUR), `frequency` (mensual/quincenal), `allocation_equity_pct` (porcentaje destinado a ETFs de renta variable, ej: 80%), `allocation_gold_pct` (porcentaje destinado a oro físico como activo refugio, ej: 20%), `is_active`, `created_at` y `updated_at`.
+  - [x] Configurar relaciones ORM bidireccionales (`relationship`), índices en claves foráneas y métodos de serialización `to_dict()`.
+- [x] 7.2 Migración de Esquema con Alembic (`backend/alembic`):
+  - [x] Generar script de migración declarativa: `55a192de36ee_create_fintech_tables.py` para crear `users`, `portfolios`, `savings_plans` y `transactions`.
+  - [x] Validar restricciones de integridad referencial, tipos de datos numéricos (`Float`), índices y claves foráneas en cascada.
+  - [x] Validación y compilación SQL transaccional para PostgreSQL (`alembic upgrade head --sql`).
+- [x] 7.3 Motor de Simulación de Aportaciones Periódicas DCA (`backend/services/dca_simulator.py`):
+  - [x] Desarrollar lógica de simulación DCA (Dollar Cost Averaging):
+    - [x] Algoritmo de calendario financiero: iteración por fechas de aportación periódica mensual/quincenal en el rango temporal seleccionado.
+    - [x] Lógica de reparto porcentual: división de la aportación (`monthly_deposit`) entre la cesta de renta variable (`allocation_equity_pct` para `VWCE.DE`) y la cobertura en oro (`allocation_gold_pct` para `8PSG.DE`).
+    - [x] Consulta de precios más recientes de liquidación y acumulación de participaciones (`shares = amount / price`).
+    - [x] Acumulación progresiva de saldo de participaciones, capital total desembolsado y cálculo del precio medio ponderado de compra (Break-Even / Cost Basis).
+- [x] 7.4 Esquemas de Validación y DTOs con Pydantic (`backend/schemas.py`):
+  - [x] Definir schemas de entrada: `UserCreate`, `SavingsPlanCreate`, `SavingsPlanUpdate`, `TransactionCreate`, `DcaSimulationRequest`.
+  - [x] Definir schemas de salida: `UserResponse`, `PortfolioResponse`, `PortfolioDetailResponse`, `SavingsPlanResponse`, `TransactionResponse`, `DcaSimulationResult`.
+- [x] 7.5 Inicialización y Seeding de Usuario Demo (`backend/db/seed.py` e integración en `startup`):
+  - [x] Script `seed_demo_user` para inyectar automáticamente el usuario demo con su Cartera y Plan de Ahorro inicial si no existen.
+  - [x] Integración en el evento `@app.on_event("startup")` de `backend/main.py`.
+- [x] 7.6 Batería de Pruebas Unitarias y de Integración (`backend/test_fintech_phase7.py`):
+  - [x] Tests de relaciones One-to-One y One-to-Many entre User, Portfolio, SavingsPlan y Transaction.
+  - [x] Tests de validación de schemas Pydantic y lógica de seeding e idempotencia.
 
 ### Fase 8: Algoritmos de Rentabilidad y Sentimiento
 **Objetivo:** Desarrollar los algoritmos de analítica financiera y exponer endpoints en FastAPI para evaluar el valor de la cartera en el tiempo, calculando métricas de rentabilidad (ROI, P&L) y contrastándolas contra la curva histórica de sentimiento de mercado (`sentiment_score`) consolidada en la v2.0.
