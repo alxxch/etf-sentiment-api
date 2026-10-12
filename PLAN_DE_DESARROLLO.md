@@ -137,4 +137,40 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Grabar video de demostración mostrando la interfaz y reproduciendo el audio del "Flash Briefing".
 
   ---
+
+## 🚀 Versión 2.0: Persistencia de Datos y Arquitectura Contenedorizada ("Data Persistence")
+**Objetivo:** Evolucionar la plataforma hacia una arquitectura contenerizada y con base de datos relacional para trazabilidad histórica de cotizaciones y sentimiento.
+
+### Fase 7: Infraestructura de Persistencia y Dockerización (Día 8)
+- [x] 7.1 Dockerización Inicial:
+  - [x] Crear `docker-compose.yml` en la raíz con servicios `db` (PostgreSQL 16) y `backend` (FastAPI).
+  - [x] Crear `backend/Dockerfile` optimizado (`python:3.11-slim`) y `backend/.dockerignore`.
+  - [x] Configuración de volúmenes persistentes y healthchecks de conexión en `docker-compose.yml`.
+- [x] 7.2 Dependencias y Migración de SDK:
+  - [x] Migrar de `google-generativeai` deprecado al nuevo SDK oficial `google-genai`.
+  - [x] Refactorizar `ai_service.py` con `client = genai.Client()`, `client.models.generate_content(...)` y manejo de cuotas 429.
+  - [x] Añadir `psycopg2-binary`, `sqlalchemy` y `alembic` a `backend/requirements.txt` e instalarlas en el entorno virtual.
+- [x] 7.3 Configuración de SQLAlchemy:
+  - [x] Crear `backend/db/database.py` (motor, sesión `SessionLocal`, base declarativa y dependency `get_db`).
+  - [x] Crear `backend/db/models.py` con el modelo `EtfHistory` (ticker, price, change_percent, sentiment_score, ai_summary, timestamp).
+  - [x] Crear `backend/db/__init__.py` para exportación modular.
+- [x] 7.4 Migraciones con Alembic y Persistencia en Endpoints:
+  - [x] Inicializar entorno de Alembic (`alembic init alembic`) y generar migración inicial.
+  - [x] Aplicar migración a PostgreSQL (`alembic upgrade head`) para crear la tabla `etf_history`.
+  - [x] Integrar guardado automático de consultas en `EtfHistory` en `backend/main.py`.
+  - [x] Implementar endpoint `GET /api/v1/history/{ticker}` para consultar datos históricos.
+- [x] 7.5 Automatización con Celery, Redis y Cron Beat:
+  - [x] Añadir servicios `redis` (Redis Alpine) y `celery_worker` a `docker-compose.yml`.
+  - [x] Configurar `celery_app.py` con broker/backend Redis y timezone CET (`Europe/Madrid`).
+  - [x] Crear tarea periódica `tasks.analyze_daily_market` en `backend/tasks.py` para iterar sobre los ETFs y persistir en PostgreSQL.
+  - [x] Configurar Celery Beat crontab (18:00 CET de lunes a viernes, cierre del mercado europeo).
+  - [x] Añadir dependencias `celery` y `redis` a `requirements.txt`.
+
+### Fase 8: Frontend v2.0 - Visualización de Histórico Temporal (Día 9)
+- [ ] 8.1 Cliente HTTP para Histórico (`api_service.dart`):
+  - [ ] Modelo `EtfHistoryEntry` y método `fetchHistory(String ticker)`.
+- [ ] 8.2 Gráfica Temporal en Flutter:
+  - [ ] Integrar paquete de gráficas (`fl_chart`) para renderizar evolución del sentimiento y cotizaciones.
+
+---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

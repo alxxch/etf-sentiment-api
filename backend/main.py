@@ -1,18 +1,20 @@
 import os
 import time
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from ai_service import analyze_sentiment
+from db import EtfHistory, get_db
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
 app = FastAPI(
     title="Smart Market Sentiment & ETF Dashboard API",
-    description="API REST para análisis de sentimiento y cotizaciones de ETFs en tiempo real con Gemini y ElevenLabs TTS",
-    version="1.5.1",
+    description="API REST para análisis de sentimiento, cotizaciones en tiempo real y persistencia histórica en PostgreSQL",
+    version="2.0.0",
 )
 
 # Configuración de CORS para permitir conexiones desde Flutter (Web, Móvil, Desktop)
@@ -63,13 +65,23 @@ class SentimentResponse(BaseModel):
     )
 
 
+class HistoryItemResponse(BaseModel):
+    id: Optional[int] = Field(None, description="Identificador único del registro")
+    ticker: str = Field(..., description="Símbolo del ETF")
+    price: float = Field(..., description="Precio de cotización registrado")
+    change_percent: float = Field(..., description="Variación porcentual registrada")
+    sentiment_score: int = Field(..., description="Puntuación de sentimiento asignada")
+    ai_summary: str = Field(..., description="Resumen narrativo del análisis")
+    timestamp: Optional[str] = Field(None, description="Fecha y hora del registro ISO 8601")
+
+
 @app.get("/", tags=["Health"])
 def root() -> Dict[str, Any]:
     """Endpoint raíz de bienvenida y estado del servicio."""
     return {
         "status": "healthy",
         "service": "Smart Market Sentiment API",
-        "version": "1.5.1",
+        "version": "2.0.0",
         "cache_entries": len(_sentiment_cache),
         "cache_ttl_seconds": CACHE_TTL_SECONDS,
         "docs_url": "/docs",
@@ -85,16 +97,45 @@ def clear_cache() -> Dict[str, str]:
 
 
 @app.get(
+    "/api/v1/history/{ticker}",
+    response_model=List[HistoryItemResponse],
+    tags=["History"],
+    summary="Obtiene el histórico de cotizaciones y sentimiento registrado en PostgreSQL",
+)
+def get_ticker_history(
+    ticker: str,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+) -> List[Dict[str, Any]]:
+    """Consulta la tabla etf_history para devolver las mediciones históricas ordenadas
+    cronológicamente descendente para un ticker.
+    """
+    clean_ticker = ticker.strip().upper()
+    records = (
+        db.query(EtfHistory)
+        .filter(EtfHistory.ticker == clean_ticker)
+        .order_by(EtfHistory.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    return [r.to_dict() for r in records]
+
+
+@app.get(
     "/api/v1/sentiment/{ticker}",
     response_model=SentimentResponse,
     tags=["Sentiment"],
     summary="Obtiene cotización, análisis de sentimiento y narración TTS de un ETF",
 )
-def get_sentiment(ticker: str, force_refresh: bool = False) -> Dict[str, Any]:
+def get_sentiment(
+    ticker: str,
+    force_refresh: bool = False,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     """Orquesta la extracción de datos de mercado (yfinance), el análisis de
-
-    sentimiento con IA (Gemini) y la narración de audio (ElevenLabs).
-    Implementa protección de caché en memoria de 5 minutos para evitar agotar cuotas.
+    sentimiento con IA (Google GenAI) y la narración de audio (ElevenLabs).
+    Persiste cada nueva observación en la base de datos PostgreSQL e implementa
+    protección de caché en memoria de 5 minutos.
     """
     clean_ticker = ticker.strip().upper()
     if not clean_ticker:
@@ -131,7 +172,24 @@ def get_sentiment(ticker: str, force_refresh: bool = False) -> Dict[str, Any]:
         # 4. Generación de síntesis de voz (Flash Briefing) con ElevenLabs
         audio_base64 = generate_speech(ai_summary) if ai_summary else None
 
-        # 5. Respuesta unificada
+        # 5. Persistencia en Base de Datos PostgreSQL usando SQLAlchemy
+        try:
+            history_record = EtfHistory(
+                ticker=market_data["ticker"],
+                price=market_data["current_price"],
+                change_percent=market_data["change_percent"],
+                sentiment_score=sentiment_result["sentiment_score"],
+                ai_summary=ai_summary,
+            )
+            db.add(history_record)
+            db.commit()
+            db.refresh(history_record)
+            print(f"[db] Registro histórico guardado en PostgreSQL (ID: {history_record.id}) para {clean_ticker}")
+        except Exception as db_err:
+            db.rollback()
+            print(f"[db] Advertencia al persistir registro en PostgreSQL para {clean_ticker}: {db_err}")
+
+        # 6. Respuesta unificada
         response_payload = {
             "ticker": market_data["ticker"],
             "current_price": market_data["current_price"],
@@ -144,7 +202,7 @@ def get_sentiment(ticker: str, force_refresh: bool = False) -> Dict[str, Any]:
             "cached": False,
         }
 
-        # 6. Almacenar en caché en memoria
+        # 7. Almacenar en caché en memoria
         _sentiment_cache[clean_ticker] = {
             "timestamp": now,
             "payload": response_payload,

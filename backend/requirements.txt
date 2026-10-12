@@ -1,6 +1,11 @@
 fastapi
 uvicorn
 yfinance
-google-generativeai
+google-genai
 elevenlabs
 python-dotenv
+sqlalchemy
+psycopg2-binary
+alembic
+celery
+redis
