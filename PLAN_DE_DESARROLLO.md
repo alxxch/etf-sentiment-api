@@ -393,5 +393,23 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Pruebas de integración con `TestClient` para los 3 endpoints.
   - [x] Validación estricta de idempotencia: dos llamadas consecutivas a `sync` con el mismo mock registran 0 transacciones duplicadas y preservan la integridad del saldo (6/6 tests pasando 100%).
 
+### Fase 14: Motor de Rebalanceo Inteligente y Alocación Dinámica (Backend)
+**Objetivo:** Desarrollar el motor cuantitativo de rebalanceo de carteras que detecta desviaciones (Portfolio Drift) y genera directrices matemáticas para orientar la aportación mensual DCA hacia los activos rezagados sin ventas forzadas, con soporte REST y Function Calling.
+
+- [x] 14.1 Motor Cuantitativo Puro (`backend/services/rebalance_engine.py`):
+  - [x] Algoritmo `calculate_rebalance_plan` que calcula el valor actual, porcentajes reales, desviaciones porcentuales y en euros frente al objetivo del plan de ahorro.
+  - [x] Algoritmo de asignación no negativa de flujo de caja para la cuota mensual: corrige desviaciones mitigando costes fiscales (sin ventas forzadas) y resuelve escenarios límite (cuando el drift supera la cuota disponible, asigna el 100% al activo rezagado).
+  - [x] Función orquestadora `get_portfolio_rebalance_advice` integrada con PostgreSQL y cotizaciones de mercado.
+- [x] 14.2 Integración Conversacional (`backend/services/ai_tools.py`, `tool_dispatcher.py` y `ai_service.py`):
+  - [x] Declaración de la herramienta Gemini `calculate_portfolio_rebalance`.
+  - [x] Enrutamiento transaccional en `tool_dispatcher.py` (`execute_calculate_portfolio_rebalance`).
+  - [x] Reconocimiento de intención en `ai_service.py` y mapeo de acción `PORTFOLIO_REBALANCE` en `assistant.py`.
+- [x] 14.3 Endpoints REST y Schemas (`backend/routers/fintech.py` y `schemas.py`):
+  - [x] Schemas Pydantic: `AssetRebalanceItem`, `RebalanceAdviceResponse`.
+  - [x] Endpoint `GET /api/v1/fintech/rebalance-advice` con soporte de parámetro opcional `custom_deposit`.
+- [x] 14.4 Suite de Pruebas Matemáticas y de Integración (`backend/test_rebalance_phase14.py`):
+  - [x] Pruebas unitarias de exactitud aritmética: cartera equilibrada (Drift=0%), rebalanceo completo (100%), escenario límite (100% al rezagado) y cartera vacía.
+  - [x] Pruebas de integración para el endpoint REST y el bucle de Function Calling (6/6 tests pasando 100%).
+
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

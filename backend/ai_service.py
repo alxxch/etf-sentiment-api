@@ -147,9 +147,11 @@ Tienes acceso a herramientas (Tools) conectadas a la base de datos PostgreSQL y 
 2. `simulate_dca_plan`: Para simular aportaciones periódicas Dollar Cost Averaging (DCA). Parámetros: monthly_deposit (monto mensual en euros), months (meses a simular, default 6 o 12), allocation_equity_pct (% renta variable), allocation_gold_pct (% oro físico).
 3. `get_market_sentiment`: Para consultar el sentimiento de mercado o cotizaciones (VWCE.DE, 8PSG.DE, etc.).
 4. `update_savings_plan`: Para actualizar permanentemente la configuración del plan de ahorro del usuario.
+5. `calculate_portfolio_rebalance`: Para calcular la desviación de la cartera (Portfolio Drift) y aconsejar matemáticamente cómo repartir la próxima aportación mensual para rebalancear los activos hacia el objetivo del plan.
 
 REGLAS DE ACTUACIÓN:
-- Siempre que el usuario pregunte por su dinero, cartera, planes o simulaciones, invoca la herramienta correspondiente.
+- Siempre que el usuario pregunte por su dinero, cartera, planes, rebalanceo o simulaciones, invoca la herramienta correspondiente.
+- Si el usuario pregunta cómo repartir su dinero este mes, cómo rebalancear o qué activo está rezagado, invoca `calculate_portfolio_rebalance`.
 - Si el usuario dice "aporta X euros al oro" o "simula X euros al oro", debes pasar monthly_deposit=X, allocation_gold_pct=100.0 y allocation_equity_pct=0.0.
 - Si el usuario menciona solo ETFs o renta variable, allocation_equity_pct=100.0 y allocation_gold_pct=0.0.
 - Si pide una aportación general sin especificar activo, usa el reparto estándar (80% renta variable, 20% oro).
@@ -163,6 +165,20 @@ def _fallback_intent_parser(user_prompt: str, db: Session, user_id: int = 1) -> 
     de Gemini alcanza límites de cuota (429) o no dispone de conexión.
     """
     prompt_lower = user_prompt.lower()
+
+    # 0. Intención de Rebalanceo Inteligente y Alocación Dinámica
+    if any(keyword in prompt_lower for keyword in ["rebalance", "rebalancear", "rebalanceo", "repartir", "desviación", "desviacion", "alocación", "alocacion"]):
+        match_amount = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:€|euros?|eur)?", prompt_lower)
+        custom_deposit = float(match_amount.group(1).replace(",", ".")) if match_amount and "mes" not in match_amount.group(0) else None
+        tool_args = {"custom_deposit": custom_deposit} if custom_deposit is not None else {}
+        result = dispatch_tool_call("calculate_portfolio_rebalance", tool_args, db=db, user_id=user_id)
+        msg = result.get("summary_message", "Rebalanceo calculado correctamente.")
+        return {
+            "text_response": msg,
+            "action_executed": "calculate_portfolio_rebalance",
+            "tool_args": tool_args,
+            "data_payload": result,
+        }
 
     # 1. Intención de simulación DCA con extracción de importes numéricos
     if any(keyword in prompt_lower for keyword in ["simula", "aporta", "aportar", "invertir", "dca", "ahorro mensual"]):

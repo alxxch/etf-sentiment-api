@@ -9,6 +9,7 @@ from db.models import EtfHistory, Portfolio, SavingsPlan, User
 from db.seed import seed_demo_user
 from routers.fintech import _build_portfolio_status
 from services.dca_simulator import get_current_asset_price, simulate_dca
+from services.rebalance_engine import get_portfolio_rebalance_advice
 
 
 def normalize_ticker_name(raw_ticker: Optional[str]) -> str:
@@ -200,6 +201,38 @@ def execute_update_savings_plan(args: Dict[str, Any], db: Session, user_id: int 
     }
 
 
+def execute_calculate_portfolio_rebalance(
+    args: Dict[str, Any],
+    db: Session,
+    user_id: int = 1,
+) -> Dict[str, Any]:
+    """Calcula la directriz de rebalanceo cuantitativo para la cartera del usuario."""
+    demo_user = db.query(User).filter((User.id == user_id) | (User.username == "demo")).first()
+    if not demo_user or not demo_user.portfolio:
+        demo_user = seed_demo_user()
+
+    custom_deposit = args.get("custom_deposit")
+    if custom_deposit is not None:
+        custom_deposit = float(custom_deposit)
+
+    rebalance_data = get_portfolio_rebalance_advice(
+        portfolio_id=demo_user.portfolio.id,
+        db=db,
+        custom_deposit=custom_deposit,
+    )
+
+    return {
+        "status": "success",
+        "rebalance_data": rebalance_data,
+        "summary_message": rebalance_data.get("summary_message", ""),
+        "rebalance_status": rebalance_data.get("rebalance_status", "BALANCED"),
+        "current_portfolio_value": rebalance_data.get("current_portfolio_value", 0.0),
+        "monthly_deposit": rebalance_data.get("monthly_deposit", 200.0),
+        "post_rebalance_portfolio_value": rebalance_data.get("post_rebalance_portfolio_value", 0.0),
+        "assets": rebalance_data.get("assets", []),
+    }
+
+
 def dispatch_tool_call(
     tool_name: str,
     args: Dict[str, Any],
@@ -220,6 +253,9 @@ def dispatch_tool_call(
 
     elif clean_name == "update_savings_plan":
         return execute_update_savings_plan(args=args, db=db, user_id=user_id)
+
+    elif clean_name == "calculate_portfolio_rebalance":
+        return execute_calculate_portfolio_rebalance(args=args, db=db, user_id=user_id)
 
     else:
         return {

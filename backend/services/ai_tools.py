@@ -118,6 +118,28 @@ def get_assistant_tools() -> types.Tool:
                 },
             },
         ),
+
+        # 5. Cálculo y recomendación de rebalanceo inteligente de cartera
+        types.FunctionDeclaration(
+            name="calculate_portfolio_rebalance",
+            description=(
+                "Analiza la desviación actual (Portfolio Drift) de la cartera frente a los porcentajes "
+                "objetivo del plan de ahorro y genera una directriz matemática para repartir la próxima "
+                "aportación mensual rebalanceando los activos sin ventas forzadas. "
+                "Úsalo cuando el usuario pregunte '¿cómo debo repartir mi dinero este mes?', "
+                "'¿cómo rebalancear mi cartera?', '¿qué activo está rezagado?' o "
+                "'rebalancea mi aportación de este mes'."
+            ),
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "custom_deposit": {
+                        "type": "number",
+                        "description": "Monto opcional de aportación mensual en euros a simular si difiere de la cuota habitual.",
+                    },
+                },
+            },
+        ),
     ]
 
     return types.Tool(function_declarations=declarations)

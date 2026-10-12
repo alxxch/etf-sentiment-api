@@ -342,4 +342,34 @@ class SyncResponse(BaseModel):
     message: str = Field(..., description="Mensaje descriptivo del resultado")
 
 
+# ============================================================================
+# Schemas de Rebalanceo Inteligente (Rebalance Advice)
+# ============================================================================
+
+class AssetRebalanceItem(BaseModel):
+    ticker: str = Field(..., description="Ticker del activo (ej: VWCE.DE, 8PSG.DE)", examples=["VWCE.DE"])
+    asset_class: str = Field(..., description="Clase de activo (EQUITY o GOLD)", examples=["EQUITY"])
+    current_value: float = Field(..., description="Valor actual de mercado en EUR", examples=[1200.0])
+    current_allocation_pct: float = Field(..., description="Porcentaje real en cartera (0-100)", examples=[85.7])
+    target_allocation_pct: float = Field(..., description="Porcentaje objetivo según plan (0-100)", examples=[80.0])
+    drift_pct: float = Field(..., description="Desviación porcentual (actual - objetivo)", examples=[5.7])
+    drift_amount: float = Field(..., description="Desviación absoluta en EUR frente al ideal actual", examples=[80.0])
+    suggested_deposit: float = Field(..., description="Monto sugerido de la aportación mensual en EUR", examples=[120.0])
+    suggested_deposit_pct: float = Field(..., description="Porcentaje de la aportación mensual asignado (0-100)", examples=[60.0])
+    projected_value: float = Field(..., description="Valoración proyectada tras la aportación sugerida", examples=[1320.0])
+    projected_allocation_pct: float = Field(..., description="Porcentaje proyectado tras la aportación sugerida", examples=[82.5])
+
+
+class RebalanceAdviceResponse(BaseModel):
+    portfolio_id: int = Field(..., description="ID de la cartera analizada")
+    user_id: int = Field(..., description="ID del usuario propietario")
+    current_portfolio_value: float = Field(..., description="Valor total actual de la cartera en EUR", examples=[1400.0])
+    monthly_deposit: float = Field(..., description="Aportación mensual disponible para rebalancear en EUR", examples=[200.0])
+    post_rebalance_portfolio_value: float = Field(..., description="Valor total proyectado tras la aportación", examples=[1600.0])
+    rebalance_status: str = Field(..., description="Estado del rebalanceo: BALANCED, FULLY_REBALANCED, PARTIALLY_REBALANCED", examples=["FULLY_REBALANCED"])
+    summary_message: str = Field(..., description="Directriz matemática explicativa para el usuario")
+    assets: List[AssetRebalanceItem] = Field(default=[], description="Desglose por activo de desviaciones y asignación recomendada")
+
+
+
 

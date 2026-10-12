@@ -19,6 +19,7 @@ ACTION_TYPE_MAP = {
     "get_portfolio_summary": "PORTFOLIO_QUERY",
     "get_market_sentiment": "MARKET_SENTIMENT_QUERY",
     "update_savings_plan": "SAVINGS_PLAN_UPDATED",
+    "calculate_portfolio_rebalance": "PORTFOLIO_REBALANCE",
     "GENERAL_QUERY": "GENERAL_QUERY",
 }
 

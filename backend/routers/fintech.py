@@ -15,11 +15,13 @@ from schemas import (
     DcaSimulationRequest,
     DcaSimulationResult,
     PortfolioStatusResponse,
+    RebalanceAdviceResponse,
     SavingsPlanCreate,
     SavingsPlanResponse,
     TransactionResponse,
 )
 from services.dca_simulator import get_current_asset_price, simulate_dca
+from services.rebalance_engine import get_portfolio_rebalance_advice
 
 router = APIRouter()
 
@@ -312,3 +314,31 @@ def update_savings_plan(
     db.commit()
     db.refresh(plan)
     return plan.to_dict()
+
+
+@router.get(
+    "/rebalance-advice",
+    response_model=RebalanceAdviceResponse,
+    summary="Calcula la desviación de la cartera y la directriz de rebalanceo dinámico para la próxima aportación",
+)
+def get_rebalance_advice(
+    custom_deposit: Optional[float] = Query(None, ge=0.0, description="Aportación personalizada opcional en EUR"),
+    user_id: Optional[int] = Query(1, description="ID del usuario (por defecto 1 - Demo User)"),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Analiza la desviación actual (Portfolio Drift) de la cartera frente a los objetivos
+    del Plan de Ahorro y genera una directriz matemática para la próxima aportación mensual.
+    """
+    demo_user = db.query(User).filter((User.id == user_id) | (User.username == "demo")).first()
+    if not demo_user or not demo_user.portfolio:
+        demo_user = seed_demo_user()
+
+    _ensure_demo_transactions(demo_user.portfolio, db)
+
+    advice = get_portfolio_rebalance_advice(
+        portfolio_id=demo_user.portfolio.id,
+        db=db,
+        custom_deposit=custom_deposit,
+    )
+    return advice
+
