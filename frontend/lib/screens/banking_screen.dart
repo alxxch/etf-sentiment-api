@@ -101,13 +101,14 @@ class _BankingScreenState extends State<BankingScreen> {
               final bName = brokerController.text.trim();
               final aRef = refController.text.trim();
               if (bName.isNotEmpty && aRef.isNotEmpty) {
+                final messenger = ScaffoldMessenger.of(context);
                 Navigator.of(dialogCtx).pop();
                 final res = await context.read<BankingProvider>().linkAccount(
                       brokerName: bName,
                       accountReference: aRef,
                     );
                 if (res != null && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Cuenta de $bName vinculada con éxito.'),
                       backgroundColor: AppColors.bullish,

@@ -7,7 +7,6 @@ import 'package:frontend/models/notification_item.dart';
 import 'package:frontend/models/rebalance_advice.dart';
 import 'package:frontend/providers/banking_provider.dart';
 import 'package:frontend/providers/notification_provider.dart';
-import 'package:frontend/providers/portfolio_provider.dart';
 import 'package:frontend/screens/banking_screen.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/widgets/rebalance_card_widget.dart';

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/rebalance_advice.dart';
 import '../theme/app_colors.dart';
@@ -34,24 +35,32 @@ class RebalanceCardWidget extends StatelessWidget {
 
     return Container(
       margin: margin ?? EdgeInsets.zero,
-      padding: const EdgeInsets.all(18.0),
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(
-          color: statusColor.withValues(alpha: 0.35),
-          width: 1.2,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 12.0,
-            offset: const Offset(0, 4),
+            blurRadius: 16.0,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.all(18.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: statusColor.withValues(alpha: 0.35),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header del Card
           Row(
@@ -184,7 +193,10 @@ class RebalanceCardWidget extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   Widget _buildAssetDriftBar(BuildContext context, AssetRebalanceItem asset) {

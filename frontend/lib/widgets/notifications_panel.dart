@@ -76,7 +76,7 @@ class NotificationsPanel extends StatelessWidget {
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 24.0),
                     itemCount: provider.notifications.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10.0),
+                    separatorBuilder: (context, index) => const SizedBox(height: 10.0),
                     itemBuilder: (context, index) {
                       final item = provider.notifications[index];
                       return _buildNotificationCard(context, item, provider);

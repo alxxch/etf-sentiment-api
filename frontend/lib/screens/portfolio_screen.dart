@@ -1,4 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/portfolio_models.dart';
@@ -6,6 +6,7 @@ import '../providers/portfolio_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/notifications_panel.dart';
 import '../widgets/rebalance_card_widget.dart';
+import '../widgets/spatial_portfolio_widget.dart';
 
 class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
@@ -15,7 +16,6 @@ class PortfolioScreen extends StatefulWidget {
 }
 
 class _PortfolioScreenState extends State<PortfolioScreen> {
-  int _touchedPieIndex = -1;
 
   @override
   void initState() {
@@ -278,14 +278,32 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final pnlBg = isPositive ? AppColors.bullishSoft : AppColors.bearishSoft;
 
     return Container(
-      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16.0,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.10),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -400,7 +418,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   Widget _buildMetricTile({required String title, required String value}) {
@@ -429,137 +450,80 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   }
 
   // ==========================================================================
-  // 2. GRÁFICO DE ALOCACIÓN MULTIACTIVO (fl_chart PieChart)
+  // 2. VISUALIZACIÓN ESPACIAL 3D & ASSET ALLOCATION (Fase 18)
   // ==========================================================================
   Widget _buildAssetAllocationSection(PortfolioStatus portfolio) {
     final allocation = portfolio.assetAllocation;
 
-    double equityPct = 80.0;
-    double goldPct = 20.0;
-
-    for (final item in allocation) {
-      if (item.isGold) {
-        goldPct = item.allocationPct;
-      } else {
-        equityPct = item.allocationPct;
-      }
-    }
-
     return Container(
-      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'ASSET ALLOCATION',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-              Text(
-                'Renta Variable vs Oro',
-                style: TextStyle(
-                  color: AppColors.textTertiary,
-                  fontSize: 12.0,
-                ),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16.0,
+            offset: const Offset(0, 6),
           ),
-          const SizedBox(height: 20.0),
-
-          // Gráfico PieChart
-          SizedBox(
-            height: 180.0,
-            child: Stack(
-              alignment: Alignment.center,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.10),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PieChart(
-                  PieChartData(
-                    pieTouchData: PieTouchData(
-                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                        setState(() {
-                          if (!event.isInterestedForInteractions ||
-                              pieTouchResponse == null ||
-                              pieTouchResponse.touchedSection == null) {
-                            _touchedPieIndex = -1;
-                            return;
-                          }
-                          _touchedPieIndex = pieTouchResponse
-                              .touchedSection!.touchedSectionIndex;
-                        });
-                      },
-                    ),
-                    borderData: FlBorderData(show: false),
-                    sectionsSpace: 3,
-                    centerSpaceRadius: 46,
-                    sections: [
-                      PieChartSectionData(
-                        value: equityPct > 0 ? equityPct : 80.0,
-                        title: '${equityPct.toStringAsFixed(0)}%',
-                        color: AppColors.equity,
-                        radius: _touchedPieIndex == 0 ? 30.0 : 25.0,
-                        titleStyle: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      PieChartSectionData(
-                        value: goldPct > 0 ? goldPct : 20.0,
-                        title: '${goldPct.toStringAsFixed(0)}%',
-                        color: AppColors.gold,
-                        radius: _touchedPieIndex == 1 ? 30.0 : 25.0,
-                        titleStyle: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(
-                      Icons.pie_chart_outline_rounded,
-                      color: AppColors.textSecondary,
-                      size: 20.0,
-                    ),
-                    const SizedBox(height: 2.0),
                     Text(
-                      '${allocation.length} ACTIVOS',
-                      style: const TextStyle(
-                        color: AppColors.textTertiary,
-                        fontSize: 9.0,
+                      'ASSET ALLOCATION 3D',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Text(
+                      'Diorama Isométrico v6.0',
+                      style: TextStyle(
+                        color: AppColors.aiAccent,
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 16.0),
+
+                // Motor de Renderizado 3D Espacial (Fase 18)
+                const SpatialPortfolioWidget(
+                  modelPath: 'assets/3d/placeholder.glb',
+                  height: 280.0,
+                  autoRotate: true,
+                ),
+
+                const SizedBox(height: 16.0),
+                const Divider(color: AppColors.cardBorder, height: 1.0),
+                const SizedBox(height: 12.0),
+
+                // Desglose detallado de los activos
+                ...allocation.map((item) => _buildAssetRow(item)),
               ],
             ),
           ),
-
-          const SizedBox(height: 16.0),
-          const Divider(color: AppColors.cardBorder, height: 1.0),
-          const SizedBox(height: 12.0),
-
-          // Desglose detallado de los activos
-          ...allocation.map((item) => _buildAssetRow(item)),
-        ],
+        ),
       ),
     );
   }
@@ -644,14 +608,32 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final simulation = provider.simulation;
 
     return Container(
-      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16.0,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.10),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1007,7 +989,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   // ==========================================================================
@@ -1017,14 +1002,32 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final transactions = portfolio.transactions;
 
     return Container(
-      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 16.0,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.10),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1132,6 +1135,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }
