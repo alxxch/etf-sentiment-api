@@ -75,6 +75,14 @@ class User(Base):
         order_by="BrokerAccount.id.asc()",
     )
 
+    # Relación One-to-Many con Notification: alertas proactivas del sistema y Celery
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Notification.timestamp.desc()",
+    )
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -298,4 +306,59 @@ class BrokerAccount(Base):
         return (
             f"<BrokerAccount(id={self.id}, user_id={self.user_id}, "
             f"broker='{self.broker_name}', status='{self.sync_status}')>"
+        )
+
+
+class NotificationType(str, enum.Enum):
+    OPPORTUNITY = "OPPORTUNITY"
+    DRIFT = "DRIFT"
+    SYSTEM = "SYSTEM"
+
+
+class Notification(Base):
+    """Modelo ORM para alertas y notificaciones proactivas generadas por Celery y el backend."""
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(
+        SQLEnum(NotificationType, name="notification_type_enum"),
+        default=NotificationType.SYSTEM,
+        nullable=False,
+        index=True,
+    )
+    is_read = Column(Boolean, default=False, nullable=False)
+    timestamp = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+
+    # Relación Many-to-One con User
+    user = relationship("User", back_populates="notifications")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "message": self.message,
+            "type": self.type.value if hasattr(self.type, "value") else str(self.type),
+            "is_read": self.is_read,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"<Notification(id={self.id}, user_id={self.user_id}, "
+            f"type='{self.type}', read={self.is_read}, title='{self.title[:30]}')>"
         )

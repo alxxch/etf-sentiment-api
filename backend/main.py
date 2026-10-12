@@ -12,12 +12,13 @@ from db import EtfHistory, get_db, seed_demo_user
 from routers.assistant import router as assistant_router
 from routers.banking import router as banking_router
 from routers.fintech import router as fintech_router
+from routers.notifications import router as notifications_router
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
 app = FastAPI(
     title="Smart Market Sentiment & ETF Dashboard API",
-    description="API REST para análisis de sentimiento, cotizaciones en tiempo real, persistencia histórica en PostgreSQL, Asistente Financiero y Open Banking con Brokers",
+    description="API REST para análisis de sentimiento, cotizaciones en tiempo real, persistencia histórica en PostgreSQL, Asistente Financiero, Open Banking y Sistema de Alertas",
     version="5.0.0",
 )
 
@@ -30,10 +31,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inclusión de routers: Fintech / DCA, Asistente Multimodal y Open Banking
+# Inclusión de routers: Fintech / DCA, Asistente Multimodal, Open Banking y Notificaciones
 app.include_router(fintech_router, prefix="/api/v1/fintech", tags=["Fintech & Portfolio"])
 app.include_router(assistant_router, prefix="/api/v1/assistant", tags=["Assistant & NLP"])
 app.include_router(banking_router, prefix="/api/v1/banking", tags=["Open Banking"])
+app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["Notifications & Alerts"])
+
 
 
 @app.on_event("startup")

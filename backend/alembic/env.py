@@ -15,7 +15,7 @@ load_dotenv()
 
 # Importar Base y modelos para detección automática (autogenerate)
 from db.database import Base
-from db.models import BrokerAccount, EtfHistory, Portfolio, SavingsPlan, Transaction, User  # noqa: F401
+from db.models import BrokerAccount, EtfHistory, Notification, Portfolio, SavingsPlan, Transaction, User  # noqa: F401
 
 config = context.config
 

@@ -32,6 +32,16 @@ celery_app.conf.update(
             # De lunes a viernes (1-5) a las 18:00 CET (cierre de mercados europeos)
             "schedule": crontab(hour=18, minute=0, day_of_week="1-5"),
         },
+        "daily-portfolio-drift-check": {
+            "task": "tasks.check_portfolio_drift_task",
+            # De lunes a viernes (1-5) a las 09:00 CET (apertura de mercados)
+            "schedule": crontab(hour=9, minute=0, day_of_week="1-5"),
+        },
+        "daily-market-opportunity-check": {
+            "task": "tasks.check_market_opportunities_task",
+            # De lunes a viernes (1-5) a las 18:30 CET (tras cierre de mercados europeos)
+            "schedule": crontab(hour=18, minute=30, day_of_week="1-5"),
+        },
     },
 )
 

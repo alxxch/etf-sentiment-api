@@ -409,7 +409,25 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Endpoint `GET /api/v1/fintech/rebalance-advice` con soporte de parámetro opcional `custom_deposit`.
 - [x] 14.4 Suite de Pruebas Matemáticas y de Integración (`backend/test_rebalance_phase14.py`):
   - [x] Pruebas unitarias de exactitud aritmética: cartera equilibrada (Drift=0%), rebalanceo completo (100%), escenario límite (100% al rezagado) y cartera vacía.
-  - [x] Pruebas de integración para el endpoint REST y el bucle de Function Calling (6/6 tests pasando 100%).
+### Fase 15: Sistema Proactivo de Alertas y Notificaciones Celery (Backend)
+**Objetivo:** Desarrollar el sistema proactivo de alertas y notificaciones en segundo plano mediante Celery y Celery Beat, detectando descompensaciones críticas en carteras (Portfolio Drift > 5%) y oportunidades de compra ante caídas severas de mercado (< -3%), con persistencia relacional en PostgreSQL y endpoints REST para lectura y gestión.
+
+- [x] 15.1 Persistencia de Alertas (`backend/db/models.py` y Alembic):
+  - [x] Modelo `Notification`: campos `id`, `user_id` (FK a `users.id`), `title`, `message`, `type` (Enum: `OPPORTUNITY`, `DRIFT`, `SYSTEM`), `is_read` (Boolean, default False) y `timestamp` (DateTime UTC).
+  - [x] Relación bidireccional `User.notifications` con eliminación en cascada.
+  - [x] Migración con Alembic generada y aplicada con éxito en PostgreSQL (`7359b188a61d_add_notifications.py`).
+- [x] 15.2 Tareas Programadas Automáticas en Celery (`backend/tasks.py` y `celery_app.py`):
+  - [x] Tarea `check_portfolio_drift_task`: evalúa el drift de los usuarios mediante el motor cuantitativo (`rebalance_engine.py`) y genera alertas `DRIFT` cuando la descompensación supera el umbral crítico (> 5%), con control de idempotencia para no duplicar alertas no leídas.
+  - [x] Tarea `check_market_opportunities_task`: evalúa caídas bruscas en ETFs rastreados (`change_percent <= -3.0%`) y genera alertas `OPPORTUNITY` aconsejando aprovechar las rebajas con la próxima aportación DCA, también con control de idempotencia.
+  - [x] Registro y programación periódica en Celery Beat (`celery_app.py`): `daily-portfolio-drift-check` (09:00 CET) y `daily-market-opportunity-check` (18:30 CET).
+- [x] 15.3 Endpoints REST y Schemas (`backend/routers/notifications.py` y `schemas.py`):
+  - [x] Schema Pydantic `NotificationResponse` con configuración `from_attributes=True`.
+  - [x] `GET /api/v1/notifications`: Listado de notificaciones del usuario ordenadas cronológicamente de forma descendente, con soporte para filtro `unread_only` y paginación `limit`.
+  - [x] `PATCH /api/v1/notifications/{id}/read`: Marcado de alerta leída (`is_read = True`).
+  - [x] Registro del router en `main.py` bajo `/api/v1/notifications` con tag `["Notifications & Alerts"]`.
+- [x] 15.4 Suite de Pruebas de Integración (`backend/test_notifications_phase15.py`):
+  - [x] Ejecución síncrona directa de tareas Celery (sin worker) para evaluar umbrales y persistencia en BD.
+  - [x] Pruebas de integración HTTP de listado y marcado de lectura con `TestClient` (9/9 tests pasando 100%).
 
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

@@ -371,5 +371,22 @@ class RebalanceAdviceResponse(BaseModel):
     assets: List[AssetRebalanceItem] = Field(default=[], description="Desglose por activo de desviaciones y asignación recomendada")
 
 
+# ============================================================================
+# Schemas de Notificaciones y Alertas (Fase 15)
+# ============================================================================
+
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str = Field(..., description="Título de la notificación")
+    message: str = Field(..., description="Contenido explicativo de la notificación")
+    type: str = Field(..., description="Tipo de notificación: OPPORTUNITY, DRIFT, SYSTEM")
+    is_read: bool = Field(..., description="Indica si la alerta ha sido leída")
+    timestamp: datetime = Field(..., description="Fecha y hora de creación de la alerta")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
 
 
