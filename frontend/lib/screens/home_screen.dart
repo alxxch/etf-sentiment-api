@@ -9,6 +9,7 @@ import '../widgets/etf_card_widget.dart';
 import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
 import '../widgets/sentiment_gauge_widget.dart';
+import 'portfolio_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final PageController _pageController;
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
@@ -60,26 +62,81 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, provider, child) {
         return Scaffold(
           backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Header estilo Apple Finance
-                _buildHeader(provider),
-
-                // Selector horizontal de Tickers (Pills / Segmented Control)
-                _buildTickerSelector(provider),
-
-                const SizedBox(height: 8.0),
-
-                // Contenido dinámico conectado reactivamente al Provider
-                Expanded(
-                  child: _buildBody(provider),
-                ),
-              ],
-            ),
+          body: IndexedStack(
+            index: _currentTabIndex,
+            children: [
+              _buildMarketTab(provider),
+              const PortfolioScreen(),
+            ],
           ),
+          bottomNavigationBar: _buildBottomNavigationBar(),
         );
       },
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.cardSurface,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.cardBorder,
+            width: 0.8,
+          ),
+        ),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _currentTabIndex,
+        onTap: (index) {
+          setState(() {
+            _currentTabIndex = index;
+          });
+        },
+        backgroundColor: AppColors.cardSurface,
+        elevation: 0,
+        selectedItemColor: AppColors.textPrimary,
+        unselectedItemColor: AppColors.textSecondary,
+        selectedFontSize: 11.5,
+        unselectedFontSize: 11.5,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.trending_up_rounded),
+            activeIcon:
+                Icon(Icons.trending_up_rounded, color: AppColors.aiAccent),
+            label: 'Mercado',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pie_chart_outline_rounded),
+            activeIcon:
+                Icon(Icons.pie_chart_rounded, color: AppColors.bullish),
+            label: 'Mi Cartera',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarketTab(EtfProvider provider) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Header estilo Apple Finance
+          _buildHeader(provider),
+
+          // Selector horizontal de Tickers (Pills / Segmented Control)
+          _buildTickerSelector(provider),
+
+          const SizedBox(height: 8.0),
+
+          // Contenido dinámico conectado reactivamente al Provider
+          Expanded(
+            child: _buildBody(provider),
+          ),
+        ],
+      ),
     );
   }
 

@@ -24,4 +24,10 @@ class AppColors {
   // Indicador de IA / Destello
   static const Color aiAccent = Color(0xFF0A84FF); // Azul Apple para IA / analítica
   static const Color aiAccentSoft = Color(0x1F0A84FF);
+
+  // Activos Fintech (Multiactivo Renta Variable y Oro)
+  static const Color equity = Color(0xFF0A84FF); // Azul Apple para Renta Variable
+  static const Color equitySoft = Color(0x260A84FF);
+  static const Color gold = Color(0xFFFFD60A); // Oro Apple para cobertura física
+  static const Color goldSoft = Color(0x26FFD60A);
 }

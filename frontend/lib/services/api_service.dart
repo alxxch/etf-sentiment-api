@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/etf_data.dart';
 import '../models/etf_history_entry.dart';
+import '../models/portfolio_models.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -125,6 +126,123 @@ class ApiService {
       throw ApiException(
         'Error de red al consultar historial de "$cleanTicker": $e',
       );
+    }
+  }
+
+  /// Consulta el estado consolidado de la cartera y sus métricas en tiempo real.
+  Future<PortfolioStatus> fetchPortfolio() async {
+    final uri = Uri.parse('$baseUrl/api/v1/fintech/portfolio');
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return PortfolioStatus.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error obteniendo estado de la cartera (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar la cartera.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar la cartera: $e');
+    }
+  }
+
+  /// Ejecuta una simulación DCA matemática retrospectiva cruzada con sentimiento.
+  Future<DcaSimulationResult> simulateDca({
+    double initialCapital = 0.0,
+    double monthlyDeposit = 200.0,
+    int months = 6,
+    double allocationEquityPct = 80.0,
+    double allocationGoldPct = 20.0,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/fintech/simulate-dca');
+    final payload = {
+      'initial_capital': initialCapital,
+      'monthly_deposit': monthlyDeposit,
+      'months': months,
+      'allocation_equity_pct': allocationEquityPct,
+      'allocation_gold_pct': allocationGoldPct,
+    };
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(payload),
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return DcaSimulationResult.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error ejecutando simulación DCA (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al ejecutar simulación DCA.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al simular DCA: $e');
+    }
+  }
+
+  /// Actualiza la configuración del plan de ahorro activo del usuario.
+  Future<SavingsPlanConfig> updateSavingsPlan(SavingsPlanConfig plan) async {
+    final uri = Uri.parse('$baseUrl/api/v1/fintech/savings-plan');
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(plan.toJson()),
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return SavingsPlanConfig.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error al actualizar el plan de ahorro (${response.statusCode}).',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al actualizar el plan de ahorro.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error al actualizar el plan de ahorro: $e');
     }
   }
 

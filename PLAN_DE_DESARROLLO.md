@@ -239,48 +239,45 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
 ### Fase 9: Interfaz de Usuario Financiera (Flutter)
 **Objetivo:** Desarrollar la experiencia de usuario financiera en Flutter implementando la pantalla "Mi Cartera", con gráficos circulares interactivos (`PieChart` de `fl_chart`), configuración dinámica de planes de ahorro mensual y visualización de métricas avanzadas (ROI, P&L) con estética Apple Finance.
 
-- [ ] 9.1 Capa de Datos y Modelos en Dart (`frontend/lib/models/` y `services/`):
-  - [ ] Crear `lib/models/portfolio_models.dart`:
-    - [ ] Clase `PortfolioSummary` (valor total, capital invertido, P&L, ROI).
-    - [ ] Clase `SavingsPlanConfig` (monto mensual, % renta variable, % oro, frecuencia).
-    - [ ] Clase `PortfolioPerformancePoint` (fecha, valor cartera, capital aportado, score sentimiento).
-    - [ ] Clase `AssetAllocationItem` (ticker, nombre, porcentaje actual, monto en EUR, color asociado).
-  - [ ] Extender `lib/services/api_service.dart`:
-    - [ ] Método `Future<PortfolioSummary> fetchPortfolioSummary()`.
-    - [ ] Método `Future<SavingsPlanConfig> fetchSavingsPlan()`.
-    - [ ] Método `Future<bool> saveSavingsPlan(SavingsPlanConfig config)`.
-    - [ ] Método `Future<List<PortfolioPerformancePoint>> fetchPortfolioPerformance()`.
-    - [ ] Método `Future<Map<String, dynamic>> simulateDca(double monthlyDeposit, double equityPct, double goldPct)`.
-- [ ] 9.2 Gestión de Estado Financiero (`frontend/lib/providers/portfolio_provider.dart`):
-  - [ ] Crear `PortfolioProvider` implementando `ChangeNotifier`.
-  - [ ] Manejo de estados reactivos: `isLoading`, `errorMessage`, datos de cartera, configuración del plan de ahorro y simulación en tiempo real.
-  - [ ] Métodos para actualizar sliders de distribución porcentual garantizando que la suma siempre sea exactamente 100%.
-  - [ ] Registrar `PortfolioProvider` en el `MultiProvider` de `lib/main.dart`.
-- [ ] 9.3 Gráfico de Alocación de Activos con PieChart (`frontend/lib/widgets/asset_allocation_chart.dart`):
-  - [ ] Integrar `PieChart` de `fl_chart` con estilo ultra-minimalista:
-    - [ ] Secciones circulares en donut (`centerSpaceRadius: 40-50`) con colores corporativos Apple Finance:
-      - Renta Variable Global (`VWCE.DE` / `EUNL.DE`): Acentos verde alcista (`#30D158`) y azul tech (`#0A84FF`).
+- [x] 9.1 Capa de Datos y Modelos en Dart (`frontend/lib/models/` y `services/`):
+  - [x] Crear `lib/models/portfolio_models.dart`:
+    - [x] Clase `PortfolioStatus` (valor total, capital invertido, P&L, ROI, sentimiento ponderado).
+    - [x] Clase `SavingsPlanConfig` (monto mensual, % renta variable, % oro, frecuencia).
+    - [x] Clase `DcaStepPoint` y `DcaSimulationResult` (fecha, valor cartera, capital aportado, score sentimiento).
+    - [x] Clase `AssetAllocationItem` (ticker, clase de activo, participaciones, precio, valor, porcentaje, P&L, ROI).
+  - [x] Extender `lib/services/api_service.dart`:
+    - [x] Método `Future<PortfolioStatus> fetchPortfolio()`.
+    - [x] Método `Future<DcaSimulationResult> simulateDca(...)`.
+    - [x] Método `Future<SavingsPlanConfig> updateSavingsPlan(...)`.
+- [x] 9.2 Gestión de Estado Financiero (`frontend/lib/providers/portfolio_provider.dart`):
+  - [x] Crear `PortfolioProvider` implementando `ChangeNotifier`.
+  - [x] Manejo de estados reactivos: `isLoading`, `errorMessage`, datos de cartera, configuración del plan de ahorro y simulación en tiempo real.
+  - [x] Métodos para actualizar sliders de distribución porcentual garantizando que la suma siempre sea exactamente 100%.
+  - [x] Registrar `PortfolioProvider` en el `MultiProvider` de `lib/main.dart`.
+- [x] 9.3 Gráfico de Alocación de Activos con PieChart (`frontend/lib/screens/portfolio_screen.dart`):
+  - [x] Integrar `PieChart` de `fl_chart` con estilo ultra-minimalista:
+    - [x] Secciones circulares en donut (`centerSpaceRadius: 46`, `radius: 25-30`) con colores corporativos Apple Finance:
+      - Renta Variable Global (`VWCE.DE`): Acento azul tech (`#0A84FF`).
       - Oro Físico Cobertura (`8PSG.DE`): Acento dorado/ámbar (`#FFD60A`).
-    - [ ] Animaciones fluidas al cargar y al interactuar con las secciones.
-    - [ ] Leyenda interactiva inferior con ticker, porcentaje asignado y valor monetario correspondiente.
-- [ ] 9.4 Tarjeta de Métricas de Rentabilidad (`frontend/lib/widgets/portfolio_metrics_card.dart`):
-  - [ ] Componente visual de alto impacto con fondo `#1C1C1E` y bordes sutiles:
-    - [ ] Valor Total de Cartera en tipografía titular (`EUR XXX.XX`).
-    - [ ] Capital Total Aportado (`Invertido: EUR XXX.XX`).
-    - [ ] Indicador de P&L absoluto con código de color dinámico (Verde `#30D158` si es positivo, Rojo `#FF453A` si es negativo).
-    - [ ] Badge de ROI porcentual (`+X.XX%` / `-X.XX%`) con icono de tendencia.
-- [ ] 9.5 Formulario Interactivo del Plan de Ahorro DCA (`frontend/lib/widgets/savings_plan_form.dart`):
-  - [ ] Campo numérico y chips de selección rápida de aportación mensual (ej: `100€`, `250€`, `500€`, `1.000€`).
-  - [ ] Sliders vinculados para balancear la alocación: mover el slider de Renta Variable ajusta automáticamente el de Oro para totalizar 100%.
-  - [ ] Botón de acción principal con retroalimentación háptica/visual: "Actualizar Plan de Ahorro" y "Ejecutar Simulación DCA".
-- [ ] 9.6 Gráfico Combinado de Evolución Temporal y Sentimiento (`frontend/lib/widgets/portfolio_performance_chart.dart`):
-  - [ ] Gráfico lineal avanzado (`LineChart` de `fl_chart`):
-    - [ ] Curva del valor de la cartera con degradado sombreado inferior.
-    - [ ] Línea de referencia del capital aportado (demostrando visualmente el efecto del interés compuesto y DCA).
-    - [ ] Visualización superpuesta o tooltip sincronizado con el `sentiment_score` para identificar compras en mínimos/máximos de sentimiento.
-- [ ] 9.7 Pantalla "Mi Cartera" y Navegación Global (`frontend/lib/screens/portfolio_screen.dart`):
-  - [ ] Diseñar `PortfolioScreen` integrando los componentes anteriores en un layout vertical optimizado con scroll suave y pull-to-refresh.
-  - [ ] Actualizar navegación principal de la app (Barra de navegación inferior `BottomNavigationBar` o pestañas superiores en `HomeScreen`) permitiendo alternar fluidamente entre "Mercado & Sentimiento" y "Mi Cartera".
+    - [x] Animaciones fluidas al tocar e interactuar con las secciones.
+    - [x] Desglose interactivo con ticker, porcentaje asignado, valor monetario, participaciones y P&L.
+- [x] 9.4 Tarjeta de Métricas de Rentabilidad:
+  - [x] Componente visual de alto impacto con fondo `#1C1C1E` y bordes sutiles:
+    - [x] Valor Total de Cartera en tipografía titular (`32px` bold).
+    - [x] Capital Total Aportado e indicador de plan recurrente.
+    - [x] Indicador de P&L absoluto con código de color dinámico (Verde `#30D158` si es positivo, Rojo `#FF453A` si es negativo).
+    - [x] Badge de ROI porcentual (`+X.XX%` / `-X.XX%`) con icono de tendencia y score de sentimiento.
+- [x] 9.5 Formulario Interactivo del Plan de Ahorro DCA:
+  - [x] Sliders para aportación mensual (25€ a 1.000€).
+  - [x] Sliders vinculados para balancear la alocación: mover el slider de Renta Variable ajusta automáticamente el de Oro para totalizar 100%.
+  - [x] Selector rápido de horizonte temporal (3, 6, 12, 24 meses).
+  - [x] Botones de acción: "Guardar Configuración" y recalcular simulación DCA interactiva.
+- [x] 9.6 Desglose de Simulación y Transacciones DCA:
+  - [x] Resumen del resultado DCA con capital aportado, valor final y rentabilidad estimada.
+  - [x] Lista de transacciones históricas automatizadas con badges de activo, fecha y precio de ejecución.
+- [x] 9.7 Pantalla "Mi Cartera" y Navegación Global (`frontend/lib/screens/portfolio_screen.dart` y `home_screen.dart`):
+  - [x] Diseñar `PortfolioScreen` integrando los componentes anteriores en un layout vertical optimizado con scroll suave y pull-to-refresh.
+  - [x] Barra de navegación inferior `BottomNavigationBar` en `HomeScreen` permitiendo alternar fluidamente entre "Mercado" y "Mi Cartera" preservando el estado con `IndexedStack`.
 
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*
