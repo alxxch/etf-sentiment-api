@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/etf_data.dart';
+import '../models/etf_history_entry.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -81,6 +82,48 @@ class ApiService {
       if (e is ApiException) rethrow;
       throw ApiException(
         'Error inesperado al consultar "$cleanTicker": $e',
+      );
+    }
+  }
+
+  /// Obtiene la serie temporal de registros históricos almacenados en PostgreSQL.
+  Future<List<EtfHistoryEntry>> fetchEtfHistory(
+    String ticker, {
+    int limit = 50,
+  }) async {
+    final cleanTicker = ticker.trim().toUpperCase();
+    final uri = Uri.parse('$baseUrl/api/v1/history/$cleanTicker?limit=$limit');
+
+    try {
+      final response = await _client
+          .get(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+        return data
+            .map((item) => EtfHistoryEntry.fromJson(item as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw ApiException(
+          'Error obteniendo historial (${response.statusCode}) para "$cleanTicker".',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw ApiException(
+        'Tiempo de espera agotado al consultar historial de "$cleanTicker".',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(
+        'Error de red al consultar historial de "$cleanTicker": $e',
       );
     }
   }

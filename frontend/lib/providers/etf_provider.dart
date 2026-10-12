@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/etf_data.dart';
+import '../models/etf_history_entry.dart';
 import '../services/api_service.dart';
 
 class EtfProvider extends ChangeNotifier {
@@ -15,6 +16,7 @@ class EtfProvider extends ChangeNotifier {
   ];
 
   final Map<String, EtfData> _etfMap = {};
+  final Map<String, List<EtfHistoryEntry>> _historyMap = {};
   int _selectedIndex = 0;
   bool _isLoading = false;
   bool _hasLoaded = false;
@@ -35,6 +37,14 @@ class EtfProvider extends ChangeNotifier {
   /// Obtiene los datos del ETF actualmente seleccionado, o null si aún no se han cargado
   EtfData? get currentEtf => _etfMap[selectedTicker];
 
+  /// Obtiene el historial del ETF actualmente seleccionado
+  List<EtfHistoryEntry> get currentHistory => getHistoryFor(selectedTicker);
+
+  /// Obtiene la lista histórica de un ticker dado
+  List<EtfHistoryEntry> getHistoryFor(String ticker) {
+    return _historyMap[ticker.trim().toUpperCase()] ?? const [];
+  }
+
   /// Lista ordenada de todos los ETFs cargados según defaultTickers
   List<EtfData> get allEtfs => defaultTickers
       .map((t) => _etfMap[t])
@@ -46,6 +56,11 @@ class EtfProvider extends ChangeNotifier {
     if (index >= 0 && index < defaultTickers.length && index != _selectedIndex) {
       _selectedIndex = index;
       notifyListeners();
+      // Si por alguna razón no tenemos historial cargado para este ticker, intentar obtenerlo
+      final ticker = defaultTickers[_selectedIndex];
+      if (!_historyMap.containsKey(ticker) || _historyMap[ticker]!.isEmpty) {
+        loadHistoryForTicker(ticker);
+      }
     }
   }
 
@@ -65,7 +80,7 @@ class EtfProvider extends ChangeNotifier {
     await loadData(force: false);
   }
 
-  /// Realiza la consulta a la API de los 3 tickers en paralelo
+  /// Realiza la consulta a la API de los 3 tickers y su historial en paralelo
   Future<void> loadData({bool force = false}) async {
     // Protección contra peticiones duplicadas o concurrentes
     if (_isLoading) {
@@ -82,24 +97,38 @@ class EtfProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Peticiones en paralelo con tolerancia individual
+      // Peticiones en paralelo con tolerancia individual para cotizaciones e historiales
       final results = await Future.wait(
         defaultTickers.map((ticker) async {
           try {
-            final data = await _apiService.fetchEtfData(ticker);
-            return MapEntry<String, EtfData?>(ticker, data);
+            final dataFuture = _apiService.fetchEtfData(ticker);
+            final historyFuture = _apiService.fetchEtfHistory(ticker).catchError((_) => <EtfHistoryEntry>[]);
+
+            final data = await dataFuture;
+            final history = await historyFuture;
+
+            return _TickerFetchResult(ticker: ticker, data: data, history: history);
           } catch (e) {
             debugPrint('[EtfProvider] Error cargando $ticker: $e');
-            return MapEntry<String, EtfData?>(ticker, null);
+            // Intentar cargar al menos el historial si el endpoint principal falla
+            try {
+              final history = await _apiService.fetchEtfHistory(ticker);
+              return _TickerFetchResult(ticker: ticker, data: null, history: history);
+            } catch (_) {
+              return _TickerFetchResult(ticker: ticker, data: null, history: const []);
+            }
           }
         }),
       );
 
       int successfulLoads = 0;
-      for (final entry in results) {
-        if (entry.value != null) {
-          _etfMap[entry.key] = entry.value!;
+      for (final res in results) {
+        if (res.data != null) {
+          _etfMap[res.ticker] = res.data!;
           successfulLoads++;
+        }
+        if (res.history.isNotEmpty) {
+          _historyMap[res.ticker] = res.history;
         }
       }
 
@@ -118,15 +147,32 @@ class EtfProvider extends ChangeNotifier {
     }
   }
 
+  /// Recarga el historial de un ticker específico
+  Future<void> loadHistoryForTicker(String ticker) async {
+    final cleanTicker = ticker.trim().toUpperCase();
+    try {
+      final history = await _apiService.fetchEtfHistory(cleanTicker);
+      _historyMap[cleanTicker] = history;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[EtfProvider] Error al obtener historial para $cleanTicker: $e');
+    }
+  }
+
   /// Recarga un único ticker
   Future<void> refreshTicker(String ticker) async {
+    final cleanTicker = ticker.trim().toUpperCase();
     try {
-      final data = await _apiService.fetchEtfData(ticker);
-      _etfMap[ticker] = data;
+      final data = await _apiService.fetchEtfData(cleanTicker);
+      _etfMap[cleanTicker] = data;
+      final history = await _apiService.fetchEtfHistory(cleanTicker).catchError((_) => <EtfHistoryEntry>[]);
+      if (history.isNotEmpty) {
+        _historyMap[cleanTicker] = history;
+      }
       _lastUpdated = DateTime.now();
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'No se pudo actualizar $ticker: $e';
+      _errorMessage = 'No se pudo actualizar $cleanTicker: $e';
       notifyListeners();
     }
   }
@@ -136,4 +182,16 @@ class EtfProvider extends ChangeNotifier {
     _apiService.dispose();
     super.dispose();
   }
+}
+
+class _TickerFetchResult {
+  final String ticker;
+  final EtfData? data;
+  final List<EtfHistoryEntry> history;
+
+  _TickerFetchResult({
+    required this.ticker,
+    required this.data,
+    required this.history,
+  });
 }

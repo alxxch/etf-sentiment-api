@@ -6,6 +6,7 @@ import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
 import '../widgets/etf_card_widget.dart';
+import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
 import '../widgets/sentiment_gauge_widget.dart';
 
@@ -364,7 +365,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 16.0),
 
-                // 3. Resumen narrativo y Flash Briefing con ElevenLabs TTS
+                // 3. Gráfico Histórico de Sentimiento (PostgreSQL / Celery)
+                HistoryChartWidget(
+                  history: provider.getHistoryFor(ticker),
+                  ticker: ticker,
+                ),
+
+                const SizedBox(height: 16.0),
+
+                // 4. Resumen narrativo y Flash Briefing con ElevenLabs TTS
                 AiSummaryWidget(
                   summary: etf.aiSummary,
                   audioBase64: etf.audioBase64,

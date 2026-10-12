@@ -167,10 +167,14 @@ Aplicación full-stack que combina extracción de datos financieros, análisis d
   - [x] Añadir dependencias `celery` y `redis` a `requirements.txt`.
 
 ### Fase 8: Frontend v2.0 - Visualización de Histórico Temporal (Día 9)
-- [ ] 8.1 Cliente HTTP para Histórico (`api_service.dart`):
-  - [ ] Modelo `EtfHistoryEntry` y método `fetchHistory(String ticker)`.
-- [ ] 8.2 Gráfica Temporal en Flutter:
-  - [ ] Integrar paquete de gráficas (`fl_chart`) para renderizar evolución del sentimiento y cotizaciones.
+- [x] 8.1 Cliente HTTP para Histórico (`api_service.dart`):
+  - [x] Modelo `EtfHistoryEntry` y método `fetchEtfHistory(String ticker)`.
+- [x] 8.2 Gestión de Estado Histórico (`etf_provider.dart`):
+  - [x] Cachear y mapear historial por ticker en `_historyMap` y notificar reactivamente a la UI.
+- [x] 8.3 Gráfica Temporal en Flutter con fl_chart (`widgets/history_chart_widget.dart`):
+  - [x] Integrar paquete de gráficas `fl_chart` para renderizar evolución del sentimiento (0-100) en el tiempo.
+  - [x] Aplicar estética Apple Finance (sin cuadrículas internas, curva suave con degradado, colores adaptativos y tooltips).
+  - [x] Integrar `HistoryChartWidget` en `screens/home_screen.dart` debajo del medidor radial.
 
 ---
 *Nota: Este documento debe residir en la raíz de tu proyecto. Actualiza las casillas a medida que avances.*

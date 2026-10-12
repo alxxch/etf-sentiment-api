@@ -37,6 +37,7 @@ dependencies:
   provider: ^6.1.5+1
   http: ^1.6.0
   audioplayers: ^6.8.1
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
