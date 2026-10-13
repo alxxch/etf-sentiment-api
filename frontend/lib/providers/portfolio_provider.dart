@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/portfolio_models.dart';
 import '../models/rebalance_advice.dart';
+import '../models/predictive_models.dart';
 import '../services/api_service.dart';
 
 class PortfolioProvider extends ChangeNotifier {
@@ -12,9 +13,11 @@ class PortfolioProvider extends ChangeNotifier {
   PortfolioStatus? _portfolio;
   DcaSimulationResult? _simulation;
   RebalanceAdvice? _rebalanceAdvice;
+  MonteCarloResult? _monteCarloResult;
   bool _isLoading = false;
   bool _isSimulating = false;
   bool _isLoadingRebalance = false;
+  bool _isLoadingMonteCarlo = false;
   bool _hasLoaded = false;
   String? _errorMessage;
 
@@ -30,12 +33,16 @@ class PortfolioProvider extends ChangeNotifier {
   PortfolioStatus? get portfolio => _portfolio;
   DcaSimulationResult? get simulation => _simulation;
   RebalanceAdvice? get rebalanceAdvice => _rebalanceAdvice;
+  MonteCarloResult? get monteCarloResult => _monteCarloResult;
   bool get isLoading => _isLoading;
   bool get isSimulating => _isSimulating;
   bool get isLoadingRebalance => _isLoadingRebalance;
+  bool get isLoadingMonteCarlo => _isLoadingMonteCarlo;
   bool get hasLoaded => _hasLoaded;
   bool get hasData => _portfolio != null;
   bool get hasRebalanceAdvice => _rebalanceAdvice != null;
+  bool get hasMonteCarloResult =>
+      _monteCarloResult != null && _monteCarloResult!.hasData;
   String? get errorMessage => _errorMessage;
 
   double get monthlyDeposit => _monthlyDeposit;
@@ -343,9 +350,66 @@ class PortfolioProvider extends ChangeNotifier {
         }
         _rebalanceEventCounter++;
         notifyListeners();
+      } else if (normAction == 'INVESTMENT_COMMITTEE' ||
+          dataPayload['montecarlo'] != null) {
+        if (dataPayload['montecarlo'] != null &&
+            dataPayload['montecarlo'] is Map<String, dynamic>) {
+          final mcMap = dataPayload['montecarlo'] as Map<String, dynamic>;
+          if (mcMap['p10'] != null) {
+            _monteCarloResult = MonteCarloResult.fromJson(mcMap);
+            notifyListeners();
+          } else {
+            await loadMonteCarloSimulation(
+              ticker: mcMap['ticker'] as String? ?? 'VWCE.DE',
+              initialInvestment:
+                  (mcMap['initial_investment'] as num?)?.toDouble() ?? 10000.0,
+              monthlyContribution:
+                  (mcMap['monthly_contribution'] as num?)?.toDouble() ?? 200.0,
+            );
+          }
+        } else {
+          await loadMonteCarloSimulation();
+        }
       }
     } catch (e) {
       debugPrint('[PortfolioProvider] Error aplicando payload del asistente: $e');
+    }
+  }
+
+  /// Carga la simulación estocástica Monte Carlo mediante GBM (Fase 24 / 26).
+  Future<void> loadMonteCarloSimulation({
+    String ticker = 'VWCE.DE',
+    int horizonDays = 1260,
+    int nSimulations = 5000,
+    double? initialInvestment,
+    double? monthlyContribution,
+  }) async {
+    _isLoadingMonteCarlo = true;
+    notifyListeners();
+    try {
+      final initial = initialInvestment ??
+          (_portfolio?.totalInvested != null && _portfolio!.totalInvested > 0
+              ? _portfolio!.totalInvested
+              : 10000.0);
+      final monthly = monthlyContribution ??
+          (_portfolio?.savingsPlan?.monthlyDeposit != null &&
+                  _portfolio!.savingsPlan!.monthlyDeposit > 0
+              ? _portfolio!.savingsPlan!.monthlyDeposit
+              : 200.0);
+
+      final res = await _apiService.fetchMonteCarloSimulation(
+        ticker: ticker,
+        horizonDays: horizonDays,
+        nSimulations: nSimulations,
+        initialInvestment: initial,
+        monthlyContribution: monthly,
+      );
+      _monteCarloResult = res;
+    } catch (e) {
+      debugPrint('[PortfolioProvider] Error cargando simulación Monte Carlo: $e');
+    } finally {
+      _isLoadingMonteCarlo = false;
+      notifyListeners();
     }
   }
 

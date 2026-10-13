@@ -8,6 +8,9 @@ import '../theme/app_colors.dart';
 import '../widgets/notifications_panel.dart';
 import '../widgets/rebalance_card_widget.dart';
 import '../widgets/spatial_portfolio_widget.dart';
+import '../widgets/predictive_chart_widget.dart';
+import '../widgets/committee_panel.dart';
+import '../widgets/glass_card.dart';
 
 class PortfolioScreen extends StatefulWidget {
   final VoiceState? customVoiceState;
@@ -264,9 +267,9 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 32.0),
             child: isDesktop
                 ? _buildDesktopPortfolioLayout(
-                    portfolio, provider, cardOpacity)
+                    portfolio, provider, cardOpacity, voiceProvider)
                 : _buildMobilePortfolioLayout(
-                    portfolio, provider, cardOpacity),
+                    portfolio, provider, cardOpacity, voiceProvider),
           ),
         );
       },
@@ -277,7 +280,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     PortfolioStatus portfolio,
     PortfolioProvider provider,
     double cardOpacity,
+    VoiceProvider? voiceProvider,
   ) {
+    final activeDebate = voiceProvider?.committeeDebate;
+    final activeMonteCarlo =
+        voiceProvider?.monteCarloResult ?? provider.monteCarloResult;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -287,6 +295,19 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           duration: const Duration(milliseconds: 300),
           child: _buildPerformancePanel(portfolio),
         ),
+
+        // Fase 26: Panel del Comité de IA si hay debate activo
+        if (activeDebate != null && activeDebate.hasContent) ...[
+          const SizedBox(height: 18.0),
+          CommitteePanel(debate: activeDebate),
+        ],
+
+        // Fase 26: Gráfico Fan Chart de Monte Carlo
+        const SizedBox(height: 18.0),
+        if (activeMonteCarlo != null && activeMonteCarlo.hasData)
+          PredictiveChartWidget(result: activeMonteCarlo)
+        else
+          _buildMonteCarloTriggerCard(provider),
 
         // Tarjeta destacada de Consejo de Rebalanceo Inteligente (Fase 14 & 16)
         if (provider.rebalanceAdvice != null) ...[
@@ -328,7 +349,12 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     PortfolioStatus portfolio,
     PortfolioProvider provider,
     double cardOpacity,
+    VoiceProvider? voiceProvider,
   ) {
+    final activeDebate = voiceProvider?.committeeDebate;
+    final activeMonteCarlo =
+        voiceProvider?.monteCarloResult ?? provider.monteCarloResult;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -341,28 +367,48 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
         const SizedBox(height: 20.0),
 
-        // 2. Distribución Responsiva: Columna izquierda 60% (3D) y Columna derecha 40% (DCA/Rebalanceo)
+        // 2. Distribución Responsiva: Columna izquierda 60% (3D + Fan Chart) y Columna derecha 40% (Comité/DCA/Rebalanceo)
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Columna Izquierda (60%): Visor 3D y Asset Allocation
+            // Columna Izquierda (60%): Visor 3D y Fan Chart Predictivo
             Expanded(
               flex: 6,
-              child: _buildAssetAllocationSection(
-                portfolio,
-                cardOpacity,
-                isDesktop: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildAssetAllocationSection(
+                    portfolio,
+                    cardOpacity,
+                    isDesktop: true,
+                  ),
+                  const SizedBox(height: 20.0),
+                  // Fase 26: Gráfico Fan Chart de Monte Carlo
+                  if (activeMonteCarlo != null && activeMonteCarlo.hasData)
+                    PredictiveChartWidget(result: activeMonteCarlo)
+                  else
+                    _buildMonteCarloTriggerCard(provider),
+                ],
               ),
             ),
 
             const SizedBox(width: 20.0),
 
-            // Columna Derecha (40%): Panel de Configuración DCA / Rebalanceo
+            // Columna Derecha (40%): Panel del Comité de IA / Rebalanceo / DCA
             Expanded(
               flex: 4,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Fase 26: Panel del Comité de IA en Desktop Sidebar si está activo
+                  if (activeDebate != null && activeDebate.hasContent) ...[
+                    CommitteePanel(
+                      debate: activeDebate,
+                      isDesktopSidebar: true,
+                    ),
+                    const SizedBox(height: 20.0),
+                  ],
+
                   // Consejo de Rebalanceo Inteligente si está disponible
                   if (provider.rebalanceAdvice != null) ...[
                     AnimatedOpacity(
@@ -396,6 +442,85 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           child: _buildTransactionsSection(portfolio),
         ),
       ],
+    );
+  }
+
+  Widget _buildMonteCarloTriggerCard(PortfolioProvider provider) {
+    return GlassCard(
+      borderColor: AppColors.aiAccent.withValues(alpha: 0.35),
+      hoverBorderColor: AppColors.aiAccent.withValues(alpha: 0.65),
+      padding: const EdgeInsets.all(20.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10.0),
+            decoration: BoxDecoration(
+              color: AppColors.aiAccentSoft,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: const Icon(
+              Icons.auto_graph_rounded,
+              color: AppColors.aiAccent,
+              size: 24.0,
+            ),
+          ),
+          const SizedBox(width: 14.0),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PROYECCIÓN MONTE CARLO (v8.0)',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                SizedBox(height: 3.0),
+                Text(
+                  'Simulación estocástica GBM a 5 años (5.000 trayectorias)',
+                  style: TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10.0),
+          ElevatedButton.icon(
+            onPressed: provider.isLoadingMonteCarlo
+                ? null
+                : () => provider.loadMonteCarloSimulation(),
+            icon: provider.isLoadingMonteCarlo
+                ? const SizedBox(
+                    width: 14.0,
+                    height: 14.0,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+                    ),
+                  )
+                : const Icon(Icons.play_arrow_rounded, size: 18.0),
+            label: Text(
+              provider.isLoadingMonteCarlo ? 'Calculando...' : 'Proyectar',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.0),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.aiAccent,
+              foregroundColor: AppColors.textPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

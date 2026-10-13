@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/api_service.dart';
 import '../services/audio_capture_service.dart';
 import '../services/whisper_service.dart';
+import '../models/predictive_models.dart';
 import 'portfolio_provider.dart';
 
 /// Alias del proveedor para compatibilidad con fases previas
@@ -39,6 +40,8 @@ class VoiceProvider extends ChangeNotifier {
   bool _isInitialized = false;
   double _soundLevel = 0.0;
   String? _lastRecordedWavPath;
+  CommitteeDebate? _committeeDebate;
+  MonteCarloResult? _monteCarloResult;
 
   /// Callback opcional invocado al ejecutar una mutación financiera
   void Function(String actionType, Map<String, dynamic> dataPayload)?
@@ -101,6 +104,14 @@ class VoiceProvider extends ChangeNotifier {
   bool get isProcessing => _state == VoiceState.processing;
   bool get isSpeaking => _state == VoiceState.speaking;
   bool get hasError => _state == VoiceState.error;
+
+  // Fase 26: Getters para Comité de IA y Monte Carlo
+  CommitteeDebate? get committeeDebate => _committeeDebate;
+  MonteCarloResult? get monteCarloResult => _monteCarloResult;
+  bool get hasCommitteeDebate =>
+      _committeeDebate != null && _committeeDebate!.hasContent;
+  bool get hasMonteCarloResult =>
+      _monteCarloResult != null && _monteCarloResult!.hasData;
 
   /// Inicializa el motor de captura y verifica permisos del sistema
   Future<bool> initialize() async {
@@ -233,6 +244,32 @@ class VoiceProvider extends ChangeNotifier {
       _actionType = actType;
       _dataPayload = payload;
 
+      // Fase 26: Capturar CommitteeDebate si está presente en la respuesta
+      if (response['committee_debate'] != null &&
+          response['committee_debate'] is Map<String, dynamic>) {
+        _committeeDebate = CommitteeDebate.fromJson(
+            response['committee_debate'] as Map<String, dynamic>);
+      }
+
+      // Fase 26: Capturar o disparar proyección Monte Carlo para el Fan Chart
+      if (payload['montecarlo'] != null &&
+          payload['montecarlo'] is Map<String, dynamic>) {
+        final mcMap = payload['montecarlo'] as Map<String, dynamic>;
+        if (mcMap['p10'] != null) {
+          _monteCarloResult = MonteCarloResult.fromJson(mcMap);
+        } else {
+          runMonteCarloSimulation(
+            ticker: mcMap['ticker'] as String? ?? 'VWCE.DE',
+            initialInvestment:
+                (mcMap['initial_investment'] as num?)?.toDouble() ?? 10000.0,
+            monthlyContribution:
+                (mcMap['monthly_contribution'] as num?)?.toDouble() ?? 200.0,
+          );
+        }
+      } else if (_committeeDebate != null || actType == 'INVESTMENT_COMMITTEE') {
+        runMonteCarloSimulation();
+      }
+
       debugPrint(
           '⚡ [VoiceProvider] Respuesta recibida: action=$actType, audioLen=${audioBase64?.length ?? 0}');
 
@@ -310,6 +347,39 @@ class VoiceProvider extends ChangeNotifier {
   }
 
   // ==========================================================================
+  // Métodos de Analítica Predictiva & Comité (Fase 26)
+  // ==========================================================================
+
+  /// Ejecuta una simulación Monte Carlo explícita y almacena el resultado para el Fan Chart.
+  Future<void> runMonteCarloSimulation({
+    String ticker = 'VWCE.DE',
+    int horizonDays = 1260,
+    int nSimulations = 5000,
+    double initialInvestment = 10000.0,
+    double monthlyContribution = 200.0,
+  }) async {
+    try {
+      final res = await _apiService.fetchMonteCarloSimulation(
+        ticker: ticker,
+        horizonDays: horizonDays,
+        nSimulations: nSimulations,
+        initialInvestment: initialInvestment,
+        monthlyContribution: monthlyContribution,
+      );
+      _monteCarloResult = res;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[VoiceProvider] Error ejecutando simulación Monte Carlo: $e');
+    }
+  }
+
+  /// Limpia el debate del comité activo
+  void clearCommitteeDebate() {
+    _committeeDebate = null;
+    notifyListeners();
+  }
+
+  // ==========================================================================
   // Métodos de ayuda para Testing Unitario
   // ==========================================================================
   @visibleForTesting
@@ -339,6 +409,18 @@ class VoiceProvider extends ChangeNotifier {
   @visibleForTesting
   void setDataPayloadForTesting(Map<String, dynamic> payload) {
     _dataPayload = payload;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setCommitteeDebateForTesting(CommitteeDebate? debate) {
+    _committeeDebate = debate;
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void setMonteCarloResultForTesting(MonteCarloResult? result) {
+    _monteCarloResult = result;
     notifyListeners();
   }
 }

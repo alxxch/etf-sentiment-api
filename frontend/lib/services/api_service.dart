@@ -8,6 +8,7 @@ import '../models/portfolio_models.dart';
 import '../models/broker_account.dart';
 import '../models/notification_item.dart';
 import '../models/rebalance_advice.dart';
+import '../models/predictive_models.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -527,6 +528,59 @@ class ApiService {
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Error al marcar notificación: $e');
+    }
+  }
+
+  // ==========================================================================
+  // Analítica Predictiva & Monte Carlo (Fase 24 & 26)
+  // ==========================================================================
+
+  /// Ejecuta una simulación estocástica Monte Carlo mediante GBM (Fase 24 / 26).
+  Future<MonteCarloResult> fetchMonteCarloSimulation({
+    String ticker = 'VWCE.DE',
+    int horizonDays = 1260,
+    int nSimulations = 5000,
+    double initialInvestment = 10000.0,
+    double monthlyContribution = 200.0,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/v1/analytics/montecarlo');
+    final payload = {
+      'ticker': ticker,
+      'horizon_days': horizonDays,
+      'n_simulations': nSimulations,
+      'initial_investment': initialInvestment,
+      'monthly_contribution': monthlyContribution,
+    };
+
+    try {
+      final response = await _client
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(payload),
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        return MonteCarloResult.fromJson(data);
+      } else {
+        throw ApiException(
+          'Error en simulación Monte Carlo (${response.statusCode}): ${utf8.decode(response.bodyBytes)}',
+          response.statusCode,
+        );
+      }
+    } on TimeoutException {
+      throw const ApiException(
+        'Tiempo de espera agotado al consultar simulación Monte Carlo.',
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Error de red al consultar Monte Carlo: $e');
     }
   }
 

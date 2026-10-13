@@ -14,6 +14,8 @@ import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
 import '../widgets/notifications_panel.dart';
 import '../widgets/sentiment_gauge_widget.dart';
+import '../widgets/predictive_chart_widget.dart';
+import '../widgets/committee_panel.dart';
 import '../widgets/voice_assistant_button.dart';
 import 'banking_screen.dart';
 import 'portfolio_screen.dart';
@@ -53,6 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             } else if (actionType == 'NOTIFICATIONS_QUERIED') {
               showNotificationsPanel(context);
+            } else if (actionType == 'INVESTMENT_COMMITTEE' ||
+                voice.hasCommitteeDebate) {
+              final isDesktop = MediaQuery.of(context).size.width >= 800;
+              if (!isDesktop && voice.committeeDebate != null) {
+                showCommitteePanelSheet(context, voice.committeeDebate!);
+              }
             }
           };
         } catch (_) {}
@@ -645,9 +653,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 20.0),
 
+            // Fase 26: Proyección Fan Chart de Monte Carlo en Desktop
+            Builder(
+              builder: (ctx) {
+                final voice = ctx.watch<VoiceProvider>();
+                if (!voice.hasMonteCarloResult) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 20.0),
+                  child: PredictiveChartWidget(
+                    result: voice.monteCarloResult!,
+                    history: provider.getHistoryFor(activeTicker),
+                  ),
+                );
+              },
+            ),
+
             // 2. Sección de Análisis Detallado del ETF Activo en layout responsivo
             LayoutBuilder(
               builder: (context, detailConstraints) {
+                final voice = context.watch<VoiceProvider>();
                 final isWide = detailConstraints.maxWidth >= 850;
 
                 final leftAnalytics = Column(
@@ -672,6 +696,55 @@ class _HomeScreenState extends State<HomeScreen> {
                     NewsListWidget(news: activeEtf.news),
                   ],
                 );
+
+                // Si hay un debate del comité de IA activo, acoplarlo en la columna derecha
+                if (voice.hasCommitteeDebate) {
+                  final committeeWidget = CommitteePanel(
+                    debate: voice.committeeDebate!,
+                    isDesktopSidebar: true,
+                  );
+
+                  if (detailConstraints.maxWidth >= 1200) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 3, child: leftAnalytics),
+                        const SizedBox(width: 16.0),
+                        Expanded(flex: 3, child: rightAnalytics),
+                        const SizedBox(width: 16.0),
+                        Expanded(flex: 4, child: committeeWidget),
+                      ],
+                    );
+                  } else if (isWide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              leftAnalytics,
+                              const SizedBox(height: 16.0),
+                              rightAnalytics,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16.0),
+                        Expanded(flex: 1, child: committeeWidget),
+                      ],
+                    );
+                  } else {
+                    return Column(
+                      children: [
+                        committeeWidget,
+                        const SizedBox(height: 16.0),
+                        leftAnalytics,
+                        const SizedBox(height: 16.0),
+                        rightAnalytics,
+                      ],
+                    );
+                  }
+                }
 
                 if (isWide) {
                   return Row(
@@ -735,6 +808,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
 
+          final voice = context.watch<VoiceProvider>();
+
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -744,6 +819,21 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // 1. Tarjeta principal de Cotización y Variación en tiempo real
                 EtfCardWidget(data: etf),
+
+                // Fase 26: Panel del Comité de IA si hay debate activo
+                if (voice.hasCommitteeDebate) ...[
+                  const SizedBox(height: 16.0),
+                  CommitteePanel(debate: voice.committeeDebate!),
+                ],
+
+                // Fase 26: Gráfico Fan Chart de Monte Carlo
+                if (voice.hasMonteCarloResult) ...[
+                  const SizedBox(height: 16.0),
+                  PredictiveChartWidget(
+                    result: voice.monteCarloResult!,
+                    history: provider.getHistoryFor(ticker),
+                  ),
+                ],
 
                 const SizedBox(height: 16.0),
 
