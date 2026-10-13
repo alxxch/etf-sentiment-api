@@ -7,6 +7,7 @@ import '../providers/voice_provider.dart';
 import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
+import '../widgets/custom_title_bar.dart';
 import '../widgets/etf_card_widget.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/history_chart_widget.dart';
@@ -99,15 +100,22 @@ class _HomeScreenState extends State<HomeScreen> {
             return Scaffold(
               backgroundColor: AppColors.background,
               body: isDesktop
-                  ? Row(
+                  ? Column(
                       children: [
-                        _buildNavigationRail(),
-                        const VerticalDivider(
-                          thickness: 1.0,
-                          width: 1.0,
-                          color: AppColors.cardBorder,
+                        const CustomTitleBar(),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              _buildNavigationRail(),
+                              const VerticalDivider(
+                                thickness: 1.0,
+                                width: 1.0,
+                                color: AppColors.cardBorder,
+                              ),
+                              Expanded(child: content),
+                            ],
+                          ),
                         ),
-                        Expanded(child: content),
                       ],
                     )
                   : content,
@@ -276,31 +284,35 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'MARKET SENTIMENT',
-                style: TextStyle(
-                  color: AppColors.textTertiary,
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MARKET SENTIMENT',
+                  style: TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              SizedBox(height: 2.0),
-              Text(
-                'ETF Dashboard',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 26.0,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.6,
+                SizedBox(height: 2.0),
+                Text(
+                  'ETF Dashboard',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 26.0,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8.0),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Badge dinámico de estado en vivo
               Container(
