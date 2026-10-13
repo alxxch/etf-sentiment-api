@@ -16,9 +16,12 @@ from ai_service import (
     ASSISTANT_SYSTEM_PROMPT,
 )
 
+from services.multi_agent_orchestrator import run_investment_committee  # noqa: F401
+
 __all__ = [
     "GeminiRateLimitException",
     "analyze_sentiment",
     "process_assistant_message",
     "ASSISTANT_SYSTEM_PROMPT",
+    "run_investment_committee",
 ]

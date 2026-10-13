@@ -275,12 +275,12 @@ class AssistantChatResponse(BaseModel):
     )
     action_type: str = Field(
         ...,
-        description="Tipo normalizado de acción ejecutada (ej: PORTFOLIO_QUERY, DCA_SIMULATED, SAVINGS_PLAN_UPDATED, GENERAL_QUERY)",
+        description="Tipo normalizado de acción ejecutada (ej: PORTFOLIO_QUERY, DCA_SIMULATED, SAVINGS_PLAN_UPDATED, GENERAL_QUERY, INVESTMENT_COMMITTEE)",
         examples=["DCA_SIMULATED"],
     )
     action_executed: Optional[str] = Field(
         default=None,
-        description="Nombre de la herramienta o función ejecutada (ej: simulate_dca_plan)",
+        description="Nombre de la herramienta o función ejecutada (ej: simulate_dca_plan, INVESTMENT_COMMITTEE)",
         examples=["simulate_dca_plan"],
     )
     tool_args: Dict[str, Any] = Field(
@@ -295,6 +295,15 @@ class AssistantChatResponse(BaseModel):
     audio_base64: Optional[str] = Field(
         default=None,
         description="Audio narrado sintetizado con ElevenLabs (Fase 12)",
+    )
+    # --- Fase 25: Comité de IA (Investment Committee) ---
+    committee_debate: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Debate del Comité de Inversión IA (Fase 25). "
+            "Presente solo cuando la intención es de análisis estratégico de alto nivel. "
+            "Claves: technical_analyst, macro_economist, risk_manager, lead_advisor."
+        ),
     )
 
 
