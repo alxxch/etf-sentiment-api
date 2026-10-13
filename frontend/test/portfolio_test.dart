@@ -108,6 +108,13 @@ void main() {
   group('Navigation & Portfolio Screen Widget Test', () {
     testWidgets('Toggles between Mercado and Mi Cartera tab',
         (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(700, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(const EtfSentimentApp());
       await tester.pump();
 

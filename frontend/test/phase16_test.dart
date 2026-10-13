@@ -357,6 +357,13 @@ void main() {
 
     testWidgets('Navigation bar includes Cuentas tab and switches between all 3 tabs',
         (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(700, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(const EtfSentimentApp());
       await tester.pump();
 

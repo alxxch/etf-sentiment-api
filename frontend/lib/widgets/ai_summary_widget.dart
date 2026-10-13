@@ -50,44 +50,53 @@ class AiSummaryWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      color: isPlaying ? AppColors.bullishSoft : AppColors.aiAccentSoft,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_rounded,
-                      color: isPlaying ? AppColors.bullish : AppColors.aiAccent,
-                      size: 18.0,
-                    ),
-                  ),
-                  const SizedBox(width: 12.0),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RESUMEN INTELIGENTE (IA)',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11.0,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        color: isPlaying ? AppColors.bullishSoft : AppColors.aiAccentSoft,
+                        borderRadius: BorderRadius.circular(10.0),
                       ),
-                      Text(
-                        'Google Gemini & ElevenLabs',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        color: isPlaying ? AppColors.bullish : AppColors.aiAccent,
+                        size: 18.0,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 12.0),
+                    const Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'RESUMEN INTELIGENTE (IA)',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11.0,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          Text(
+                            'Google Gemini & ElevenLabs',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               // Botón minimalista de Play/Pause con indicador de onda animada

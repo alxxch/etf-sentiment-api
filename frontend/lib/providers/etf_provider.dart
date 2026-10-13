@@ -177,6 +177,17 @@ class EtfProvider extends ChangeNotifier {
     }
   }
 
+  @visibleForTesting
+  void setEtfDataForTesting(String ticker, EtfData data, [List<EtfHistoryEntry>? history]) {
+    _etfMap[ticker] = data;
+    if (history != null) {
+      _historyMap[ticker] = history;
+    }
+    _hasLoaded = true;
+    _isLoading = false;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _apiService.dispose();

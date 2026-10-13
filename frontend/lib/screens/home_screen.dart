@@ -8,6 +8,7 @@ import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
 import '../widgets/etf_card_widget.dart';
+import '../widgets/glass_card.dart';
 import '../widgets/history_chart_widget.dart';
 import '../widgets/news_list_widget.dart';
 import '../widgets/notifications_panel.dart';
@@ -82,21 +83,117 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Consumer<EtfProvider>(
       builder: (context, provider, child) {
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: IndexedStack(
-            index: _currentTabIndex,
-            children: [
-              _buildMarketTab(provider),
-              const PortfolioScreen(),
-              const BankingScreen(),
-            ],
-          ),
-          bottomNavigationBar: _buildBottomNavigationBar(),
-          floatingActionButton: const VoiceAssistantButton(),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 800;
+
+            final content = IndexedStack(
+              index: _currentTabIndex,
+              children: [
+                _buildMarketTab(provider, isDesktop: isDesktop),
+                const PortfolioScreen(),
+                const BankingScreen(),
+              ],
+            );
+
+            return Scaffold(
+              backgroundColor: AppColors.background,
+              body: isDesktop
+                  ? Row(
+                      children: [
+                        _buildNavigationRail(),
+                        const VerticalDivider(
+                          thickness: 1.0,
+                          width: 1.0,
+                          color: AppColors.cardBorder,
+                        ),
+                        Expanded(child: content),
+                      ],
+                    )
+                  : content,
+              bottomNavigationBar:
+                  isDesktop ? null : _buildBottomNavigationBar(),
+              floatingActionButton: const VoiceAssistantButton(),
+              floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildNavigationRail() {
+    return NavigationRail(
+      selectedIndex: _currentTabIndex,
+      onDestinationSelected: (index) {
+        setState(() {
+          _currentTabIndex = index;
+        });
+      },
+      backgroundColor: AppColors.cardSurface,
+      indicatorColor: AppColors.surfaceSecondary,
+      labelType: NavigationRailLabelType.all,
+      minWidth: 78.0,
+      leading: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 16.0, 0, 16.0),
+        child: Container(
+          width: 44.0,
+          height: 44.0,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceSecondary,
+            borderRadius: BorderRadius.circular(14.0),
+            border: Border.all(
+              color: AppColors.cardBorder.withValues(alpha: 0.8),
+              width: 1.0,
+            ),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.query_stats_rounded,
+              color: AppColors.aiAccent,
+              size: 22.0,
+            ),
+          ),
+        ),
+      ),
+      selectedIconTheme: const IconThemeData(
+        color: AppColors.textPrimary,
+        size: 22.0,
+      ),
+      unselectedIconTheme: const IconThemeData(
+        color: AppColors.textSecondary,
+        size: 20.0,
+      ),
+      selectedLabelTextStyle: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 11.5,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.2,
+      ),
+      unselectedLabelTextStyle: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 11.0,
+        fontWeight: FontWeight.w500,
+      ),
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.trending_up_rounded),
+          selectedIcon:
+              Icon(Icons.trending_up_rounded, color: AppColors.aiAccent),
+          label: Text('Mercado'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.pie_chart_outline_rounded),
+          selectedIcon: Icon(Icons.pie_chart_rounded, color: AppColors.bullish),
+          label: Text('Mi Cartera'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.account_balance_outlined),
+          selectedIcon:
+              Icon(Icons.account_balance_rounded, color: AppColors.gold),
+          label: Text('Cuentas'),
+        ),
+      ],
     );
   }
 
@@ -150,21 +247,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMarketTab(EtfProvider provider) {
+  Widget _buildMarketTab(EtfProvider provider, {required bool isDesktop}) {
     return SafeArea(
       child: Column(
         children: [
           // Header estilo Apple Finance
           _buildHeader(provider),
 
-          // Selector horizontal de Tickers (Pills / Segmented Control)
-          _buildTickerSelector(provider),
+          // Selector horizontal de Tickers (Pills / Segmented Control) - solo en móvil
+          if (!isDesktop) _buildTickerSelector(provider),
 
           const SizedBox(height: 8.0),
 
           // Contenido dinámico conectado reactivamente al Provider
           Expanded(
-            child: _buildBody(provider),
+            child: isDesktop
+                ? _buildDesktopMarketBody(provider)
+                : _buildBody(provider),
           ),
         ],
       ),
@@ -319,105 +418,287 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBody(EtfProvider provider) {
-    // 1. Estado inicial de carga completa (sin datos en memoria)
-    if (provider.isLoading && !provider.hasData) {
-      return Center(
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 38.0,
+            height: 38.0,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.bullish),
+            ),
+          ),
+          const SizedBox(height: 24.0),
+          const Text(
+            'Consultando cotizaciones de ETFs...',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16.0,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6.0),
+          Text(
+            'Analizando titulares con Gemini LLM',
+            style: TextStyle(
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+              fontSize: 13.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(EtfProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-              width: 38.0,
-              height: 38.0,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.bullish),
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.bearishSoft,
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                color: AppColors.bearish,
+                size: 40.0,
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            const Text(
+              'No se pudo conectar con el Backend',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18.0,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10.0),
+            Text(
+              provider.errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13.5,
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 24.0),
-            const Text(
-              'Consultando cotizaciones de ETFs...',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16.0,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6.0),
-            Text(
-              'Analizando titulares con Gemini LLM',
-              style: TextStyle(
-                color: AppColors.textSecondary.withValues(alpha: 0.8),
-                fontSize: 13.0,
+            ElevatedButton.icon(
+              onPressed: () => provider.loadData(force: true),
+              icon: const Icon(Icons.refresh_rounded, size: 18.0),
+              label: const Text('Reintentar conexión'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.surfaceSecondary,
+                foregroundColor: AppColors.textPrimary,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 22.0, vertical: 12.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14.0),
+                  side: const BorderSide(color: AppColors.cardBorder),
+                ),
               ),
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildDesktopMarketBody(EtfProvider provider) {
+    if (provider.isLoading && !provider.hasData) {
+      return _buildLoadingState();
+    }
+
+    if (provider.errorMessage != null && !provider.hasData) {
+      return _buildErrorState(provider);
+    }
+
+    final activeTicker = (provider.selectedIndex < provider.tickers.length)
+        ? provider.tickers[provider.selectedIndex]
+        : (provider.tickers.isNotEmpty ? provider.tickers.first : 'VWCE.DE');
+
+    final activeEtf = provider.allEtfs.firstWhere(
+      (item) => item.ticker == activeTicker,
+      orElse: () => EtfData(
+        ticker: activeTicker,
+        currentPrice: 0.0,
+        changePercent: 0.0,
+        sentimentScore: 50,
+        aiSummary: 'Cargando datos para $activeTicker...',
+      ),
+    );
+
+    return RefreshIndicator(
+      color: AppColors.bullish,
+      backgroundColor: AppColors.cardSurface,
+      onRefresh: () => provider.loadData(force: true),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 32.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. GridView responsivo de tarjetas de ETFs (aprovecha ancho en varias columnas)
+            LayoutBuilder(
+              builder: (context, gridConstraints) {
+                final crossAxisCount = gridConstraints.maxWidth > 1100
+                    ? 3
+                    : (gridConstraints.maxWidth > 650 ? 2 : 1);
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16.0,
+                    mainAxisSpacing: 16.0,
+                    mainAxisExtent: 215.0,
+                  ),
+                  itemCount: provider.tickers.length,
+                  itemBuilder: (context, index) {
+                    final ticker = provider.tickers[index];
+                    final etf = provider.allEtfs.firstWhere(
+                      (item) => item.ticker == ticker,
+                      orElse: () => EtfData(
+                        ticker: ticker,
+                        currentPrice: 0.0,
+                        changePercent: 0.0,
+                        sentimentScore: 50,
+                        aiSummary: 'Cargando datos para $ticker...',
+                      ),
+                    );
+                    final isSelected = index == provider.selectedIndex;
+
+                    return GlassCard(
+                      onTap: () {
+                        context.read<AudioService>().stop();
+                        provider.selectTickerIndex(index);
+                      },
+                      borderColor: isSelected
+                          ? AppColors.aiAccent
+                          : AppColors.cardBorder.withValues(alpha: 0.6),
+                      borderWidth: isSelected ? 2.0 : 1.0,
+                      padding: EdgeInsets.zero,
+                      child: Stack(
+                        children: [
+                          EtfCardWidget(data: etf),
+                          if (isSelected)
+                            Positioned(
+                              top: 12,
+                              right: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 3.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.aiAccent
+                                      .withValues(alpha: 0.20),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  border: Border.all(
+                                    color: AppColors.aiAccent,
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'ACTIVO',
+                                  style: TextStyle(
+                                    color: AppColors.aiAccent,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+
+            const SizedBox(height: 20.0),
+
+            // 2. Sección de Análisis Detallado del ETF Activo en layout responsivo
+            LayoutBuilder(
+              builder: (context, detailConstraints) {
+                final isWide = detailConstraints.maxWidth >= 850;
+
+                final leftAnalytics = Column(
+                  children: [
+                    SentimentGaugeWidget(score: activeEtf.sentimentScore),
+                    const SizedBox(height: 16.0),
+                    HistoryChartWidget(
+                      history: provider.getHistoryFor(activeTicker),
+                      ticker: activeTicker,
+                    ),
+                  ],
+                );
+
+                final rightAnalytics = Column(
+                  children: [
+                    AiSummaryWidget(
+                      summary: activeEtf.aiSummary,
+                      audioBase64: activeEtf.audioBase64,
+                      ticker: activeEtf.ticker,
+                    ),
+                    const SizedBox(height: 16.0),
+                    NewsListWidget(news: activeEtf.news),
+                  ],
+                );
+
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 1, child: leftAnalytics),
+                      const SizedBox(width: 16.0),
+                      Expanded(flex: 1, child: rightAnalytics),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      leftAnalytics,
+                      const SizedBox(height: 16.0),
+                      rightAnalytics,
+                    ],
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(EtfProvider provider) {
+    // 1. Estado inicial de carga completa (sin datos en memoria)
+    if (provider.isLoading && !provider.hasData) {
+      return _buildLoadingState();
     }
 
     // 2. Estado de error global de conexión
     if (provider.errorMessage != null && !provider.hasData) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: AppColors.bearishSoft,
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
-                child: const Icon(
-                  Icons.cloud_off_rounded,
-                  color: AppColors.bearish,
-                  size: 40.0,
-                ),
-              ),
-              const SizedBox(height: 20.0),
-              const Text(
-                'No se pudo conectar con el Backend',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10.0),
-              Text(
-                provider.errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13.5,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24.0),
-              ElevatedButton.icon(
-                onPressed: () => provider.loadData(force: true),
-                icon: const Icon(Icons.refresh_rounded, size: 18.0),
-                label: const Text('Reintentar conexión'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceSecondary,
-                  foregroundColor: AppColors.textPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 12.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.0),
-                    side: const BorderSide(color: AppColors.cardBorder),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildErrorState(provider);
     }
 
-    // 3. Vista reactiva con PageView conectado a los datos en vivo
+    // 3. Vista reactiva con PageView conectado a los datos en vivo (Layout Móvil)
     return RefreshIndicator(
       color: AppColors.bullish,
       backgroundColor: AppColors.cardSurface,

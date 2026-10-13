@@ -63,10 +63,27 @@ class RebalanceCardWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header del Card
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          LayoutBuilder(
+            builder: (context, headerConstraints) {
+              final isCompact = headerConstraints.maxWidth < 380;
+              final badge = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9.0, vertical: 4.0),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              );
+
+              final titleContent = Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(7.0),
@@ -81,49 +98,58 @@ class RebalanceCardWidget extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10.0),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'DYNAMIC REBALANCING',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                          fontSize: 10.0,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.4,
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'DYNAMIC REBALANCING',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.4,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Consejo de Rebalanceo',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 17.0,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
+                        Text(
+                          'Consejo de Rebalanceo',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 17.0,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.4,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 9.0, vertical: 4.0),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(12.0),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleContent,
+                    const SizedBox(height: 8.0),
+                    badge,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleContent),
+                  const SizedBox(width: 8.0),
+                  badge,
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 14.0),
@@ -173,20 +199,29 @@ class RebalanceCardWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Cuota evaluada: ${advice.monthlyDeposit.toStringAsFixed(2)} €/mes',
-                style: const TextStyle(
-                  color: AppColors.textTertiary,
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  'Cuota evaluada: ${advice.monthlyDeposit.toStringAsFixed(2)} €/mes',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              Text(
-                'Post-rebalanceo: ${advice.postRebalancePortfolioValue.toStringAsFixed(2)} €',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 8.0),
+              Flexible(
+                child: Text(
+                  'Post-rebalanceo: ${advice.postRebalancePortfolioValue.toStringAsFixed(2)} €',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -214,27 +249,34 @@ class RebalanceCardWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8.0,
-                    height: 8.0,
-                    decoration: BoxDecoration(
-                      color: assetColor,
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8.0,
+                      height: 8.0,
+                      decoration: BoxDecoration(
+                        color: assetColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6.0),
-                  Text(
-                    '${asset.ticker} (${isGold ? 'Oro Físico' : 'Renta Variable'})',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(width: 6.0),
+                    Expanded(
+                      child: Text(
+                        '${asset.ticker} (${isGold ? 'Oro Físico' : 'Renta Variable'})',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8.0),
               // Badge de Desviación (Drift)
               Container(
                 padding:
@@ -299,19 +341,30 @@ class RebalanceCardWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Actual: ${asset.currentAllocationPct.toStringAsFixed(1)}% | Objetivo: ${asset.targetAllocationPct.toStringAsFixed(0)}%',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11.0,
+              Expanded(
+                child: Text(
+                  'Actual: ${asset.currentAllocationPct.toStringAsFixed(1)}% | Objetivo: ${asset.targetAllocationPct.toStringAsFixed(0)}%',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10.5,
+                  ),
                 ),
               ),
-              Text(
-                'Aportar: ${asset.suggestedDeposit.toStringAsFixed(2)} € (${asset.suggestedDepositPct.toStringAsFixed(0)}%)',
-                style: TextStyle(
-                  color: assetColor,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 6.0),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Aportar: ${asset.suggestedDeposit.toStringAsFixed(2)} € (${asset.suggestedDepositPct.toStringAsFixed(0)}%)',
+                    style: TextStyle(
+                      color: assetColor,
+                      fontSize: 11.0,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],

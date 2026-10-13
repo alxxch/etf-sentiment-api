@@ -34,29 +34,34 @@ class EtfCardWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.ticker,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 28.0,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.6,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.ticker,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 28.0,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3.0),
-                  Text(
-                    _getSubtitle(data.ticker),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 3.0),
+                    Text(
+                      _getSubtitle(data.ticker),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8.0),
               // Badge de variación porcentual con animación implícita
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -97,22 +102,28 @@ class EtfCardWidget extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               // Contador numérico suave con TweenAnimationBuilder
-              TweenAnimationBuilder<double>(
-                key: ValueKey('${data.ticker}_${data.currentPrice}'),
-                tween: Tween<double>(begin: 0.0, end: data.currentPrice),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutCubic,
-                builder: (context, val, child) {
-                  return Text(
-                    val.toStringAsFixed(2),
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 40.0,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.2,
-                    ),
-                  );
-                },
+              Flexible(
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey('${data.ticker}_${data.currentPrice}'),
+                  tween: Tween<double>(begin: 0.0, end: data.currentPrice),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, val, child) {
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        val.toStringAsFixed(2),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 40.0,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.2,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(width: 8.0),
               Text(

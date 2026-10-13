@@ -42,44 +42,53 @@ class HistoryChartWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(9.0),
-                    ),
-                    child: const Icon(
-                      Icons.show_chart_rounded,
-                      color: AppColors.aiAccent,
-                      size: 17.0,
-                    ),
-                  ),
-                  const SizedBox(width: 10.0),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'EVOLUCIÓN DE SENTIMIENTO',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11.0,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceSecondary,
+                        borderRadius: BorderRadius.circular(9.0),
                       ),
-                      Text(
-                        'Histórico en PostgreSQL',
-                        style: TextStyle(
-                          color: AppColors.textTertiary,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: const Icon(
+                        Icons.show_chart_rounded,
+                        color: AppColors.aiAccent,
+                        size: 17.0,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 10.0),
+                    const Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'EVOLUCIÓN DE SENTIMIENTO',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11.0,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          Text(
+                            'Histórico en PostgreSQL',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 12.0,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (sorted.isNotEmpty)
                 Container(

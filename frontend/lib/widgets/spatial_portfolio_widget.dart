@@ -286,18 +286,21 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
 
               // Motor de Renderizado 3D (ModelViewer) o Canvas fallback en tests
               Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20.0),
-                  child: _build3DCanvas(
-                    cameraOrbit: cameraOrbit,
-                    fov: targetFov,
-                    autoRotate: effectiveAutoRotate,
-                    rotationSpeed: targetSpeed,
-                    sentimentColor: ambientGlowColor,
-                    sentimentScore: sentimentScore,
-                    equityPct: equityPct,
-                    voiceState: voiceState,
-                    pulse: pulse,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.grab,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20.0),
+                    child: _build3DCanvas(
+                      cameraOrbit: cameraOrbit,
+                      fov: targetFov,
+                      autoRotate: effectiveAutoRotate,
+                      rotationSpeed: targetSpeed,
+                      sentimentColor: ambientGlowColor,
+                      sentimentScore: sentimentScore,
+                      equityPct: equityPct,
+                      voiceState: voiceState,
+                      pulse: pulse,
+                    ),
                   ),
                 ),
               ),
@@ -311,52 +314,61 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Badge 3D Espacial con ángulo dinámico
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0,
-                            vertical: 5.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                const Color(0xFF1C1C1E).withValues(alpha: 0.50),
-                            borderRadius: BorderRadius.circular(12.0),
-                            border: Border.all(
-                              color: AppColors.aiAccent.withValues(alpha: 0.35),
-                              width: 1.0,
+                    Flexible(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12.0),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10.0,
+                              vertical: 5.0,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.view_in_ar_rounded,
-                                color: AppColors.aiAccent,
-                                size: 14.0,
+                            decoration: BoxDecoration(
+                              color:
+                                  const Color(0xFF1C1C1E).withValues(alpha: 0.50),
+                              borderRadius: BorderRadius.circular(12.0),
+                              border: Border.all(
+                                color: AppColors.aiAccent.withValues(alpha: 0.35),
+                                width: 1.0,
                               ),
-                              const SizedBox(width: 6.0),
-                              const Text(
-                                'DIORAMA 3D • ISOMÉTRICO',
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.view_in_ar_rounded,
+                                  color: AppColors.aiAccent,
+                                  size: 14.0,
                                 ),
-                              ),
-                              const SizedBox(width: 4.0),
-                              Text(
-                                '• ${equityPct.toStringAsFixed(0)}% RV (${phi.toStringAsFixed(0)}°)',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w600,
+                                Flexible(
+                                  child: const Text(
+                                    'DIORAMA 3D • ISOMÉTRICO',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 10.0,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4.0),
+                                Flexible(
+                                  child: Text(
+                                    '• ${equityPct.toStringAsFixed(0)}% RV (${phi.toStringAsFixed(0)}°)',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -548,45 +560,52 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Gestos
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10.0),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10.0,
-                            vertical: 3.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                const Color(0xFF1C1C1E).withValues(alpha: 0.40),
-                            borderRadius: BorderRadius.circular(10.0),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08),
+                    Flexible(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10.0),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: 3.5,
                             ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.touch_app_rounded,
-                                color: AppColors.textTertiary,
-                                size: 12.0,
+                            decoration: BoxDecoration(
+                              color:
+                                  const Color(0xFF1C1C1E).withValues(alpha: 0.40),
+                              borderRadius: BorderRadius.circular(10.0),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.08),
                               ),
-                              SizedBox(width: 5.0),
-                              Text(
-                                'Arrastra para rotar • Pellizca para zoom',
-                                style: TextStyle(
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.touch_app_rounded,
                                   color: AppColors.textTertiary,
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w500,
+                                  size: 12.0,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 5.0),
+                                Flexible(
+                                  child: Text(
+                                    'Arrastra para rotar • Pellizca para zoom',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 10.0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8.0),
 
                     // Botón interactivo para alternar auto-rotación
                     ClipRRect(

@@ -249,60 +249,153 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     final isVoiceActive = voiceState != VoiceState.idle;
     final cardOpacity = isVoiceActive ? 0.35 : 1.0;
 
-    return RefreshIndicator(
-      color: AppColors.bullish,
-      backgroundColor: AppColors.cardSurface,
-      onRefresh: () => provider.loadPortfolio(force: true),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+
+        return RefreshIndicator(
+          color: AppColors.bullish,
+          backgroundColor: AppColors.cardSurface,
+          onRefresh: () => provider.loadPortfolio(force: true),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 32.0),
+            child: isDesktop
+                ? _buildDesktopPortfolioLayout(
+                    portfolio, provider, cardOpacity)
+                : _buildMobilePortfolioLayout(
+                    portfolio, provider, cardOpacity),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobilePortfolioLayout(
+    PortfolioStatus portfolio,
+    PortfolioProvider provider,
+    double cardOpacity,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Tarjeta principal de Rendimiento y Valoración (con oscurecimiento sutil)
+        AnimatedOpacity(
+          opacity: cardOpacity,
+          duration: const Duration(milliseconds: 300),
+          child: _buildPerformancePanel(portfolio),
         ),
-        padding: const EdgeInsets.fromLTRB(20.0, 8.0, 20.0, 32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+
+        // Tarjeta destacada de Consejo de Rebalanceo Inteligente (Fase 14 & 16)
+        if (provider.rebalanceAdvice != null) ...[
+          const SizedBox(height: 18.0),
+          AnimatedOpacity(
+            opacity: cardOpacity,
+            duration: const Duration(milliseconds: 300),
+            child: RebalanceCardWidget(advice: provider.rebalanceAdvice!),
+          ),
+        ],
+
+        const SizedBox(height: 18.0),
+
+        // 2. Gráfico de Alocación Multiactivo y Diorama 3D (Fases 18-20)
+        _buildAssetAllocationSection(portfolio, cardOpacity),
+
+        const SizedBox(height: 18.0),
+
+        // 3. Simulador y Configuración interactiva DCA
+        AnimatedOpacity(
+          opacity: cardOpacity,
+          duration: const Duration(milliseconds: 300),
+          child: _buildDcaSimulatorForm(provider),
+        ),
+
+        const SizedBox(height: 18.0),
+
+        // 4. Historial de Transacciones DCA
+        AnimatedOpacity(
+          opacity: cardOpacity,
+          duration: const Duration(milliseconds: 300),
+          child: _buildTransactionsSection(portfolio),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopPortfolioLayout(
+    PortfolioStatus portfolio,
+    PortfolioProvider provider,
+    double cardOpacity,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Tarjeta principal de Rendimiento y Valoración en todo el ancho superior
+        AnimatedOpacity(
+          opacity: cardOpacity,
+          duration: const Duration(milliseconds: 300),
+          child: _buildPerformancePanel(portfolio),
+        ),
+
+        const SizedBox(height: 20.0),
+
+        // 2. Distribución Responsiva: Columna izquierda 60% (3D) y Columna derecha 40% (DCA/Rebalanceo)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Tarjeta principal de Rendimiento y Valoración (con oscurecimiento sutil)
-            AnimatedOpacity(
-              opacity: cardOpacity,
-              duration: const Duration(milliseconds: 300),
-              child: _buildPerformancePanel(portfolio),
-            ),
-
-            // Tarjeta destacada de Consejo de Rebalanceo Inteligente (Fase 14 & 16)
-            if (provider.rebalanceAdvice != null) ...[
-              const SizedBox(height: 18.0),
-              AnimatedOpacity(
-                opacity: cardOpacity,
-                duration: const Duration(milliseconds: 300),
-                child: RebalanceCardWidget(advice: provider.rebalanceAdvice!),
+            // Columna Izquierda (60%): Visor 3D y Asset Allocation
+            Expanded(
+              flex: 6,
+              child: _buildAssetAllocationSection(
+                portfolio,
+                cardOpacity,
+                isDesktop: true,
               ),
-            ],
-
-            const SizedBox(height: 18.0),
-
-            // 2. Gráfico de Alocación Multiactivo y Diorama 3D (Fases 18-20)
-            _buildAssetAllocationSection(portfolio, cardOpacity),
-
-            const SizedBox(height: 18.0),
-
-            // 3. Simulador y Configuración interactiva DCA
-            AnimatedOpacity(
-              opacity: cardOpacity,
-              duration: const Duration(milliseconds: 300),
-              child: _buildDcaSimulatorForm(provider),
             ),
 
-            const SizedBox(height: 18.0),
+            const SizedBox(width: 20.0),
 
-            // 4. Historial de Transacciones DCA
-            AnimatedOpacity(
-              opacity: cardOpacity,
-              duration: const Duration(milliseconds: 300),
-              child: _buildTransactionsSection(portfolio),
+            // Columna Derecha (40%): Panel de Configuración DCA / Rebalanceo
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Consejo de Rebalanceo Inteligente si está disponible
+                  if (provider.rebalanceAdvice != null) ...[
+                    AnimatedOpacity(
+                      opacity: cardOpacity,
+                      duration: const Duration(milliseconds: 300),
+                      child: RebalanceCardWidget(
+                        advice: provider.rebalanceAdvice!,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                  ],
+
+                  // Panel de Configuración interactiva y Simulador DCA
+                  AnimatedOpacity(
+                    opacity: cardOpacity,
+                    duration: const Duration(milliseconds: 300),
+                    child: _buildDcaSimulatorForm(provider),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      ),
+
+        const SizedBox(height: 20.0),
+
+        // 3. Historial de Transacciones DCA
+        AnimatedOpacity(
+          opacity: cardOpacity,
+          duration: const Duration(milliseconds: 300),
+          child: _buildTransactionsSection(portfolio),
+        ),
+      ],
     );
   }
 
@@ -467,6 +560,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       children: [
         Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: AppColors.textTertiary,
             fontSize: 11.0,
@@ -474,12 +569,16 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           ),
         ),
         const SizedBox(height: 4.0),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -490,7 +589,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   // 2. VISUALIZACIÓN ESPACIAL 3D & ASSET ALLOCATION (Fases 18-20)
   // ==========================================================================
   Widget _buildAssetAllocationSection(
-      PortfolioStatus portfolio, double cardOpacity) {
+      PortfolioStatus portfolio, double cardOpacity,
+      {bool isDesktop = false}) {
     final allocation = portfolio.assetAllocation;
 
     return Container(
@@ -527,21 +627,30 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'ASSET ALLOCATION 3D',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
+                      Flexible(
+                        child: Text(
+                          'ASSET ALLOCATION 3D',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
-                      Text(
-                        'Diorama Isométrico v6.0',
-                        style: TextStyle(
-                          color: AppColors.aiAccent,
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w600,
+                      SizedBox(width: 8.0),
+                      Flexible(
+                        child: Text(
+                          'Diorama Isométrico v6.0',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.aiAccent,
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -553,7 +662,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                 // Se mantiene a opacidad 1.0 para ser el foco espacial central
                 SpatialPortfolioWidget(
                   modelPath: 'assets/3d/placeholder.glb',
-                  height: 280.0,
+                  height: isDesktop ? 360.0 : 280.0,
                   autoRotate: true,
                   customVoiceState: widget.customVoiceState,
                   customVoiceProvider: widget.customVoiceProvider,
@@ -691,13 +800,17 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'SIMULADOR DCA & PLAN DE AHORRO',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+              const Flexible(
+                child: Text(
+                  'SIMULADOR DCA & PLAN DE AHORRO',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
               if (provider.isSimulating)
@@ -726,14 +839,19 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Aportación Mensual',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
+              const Flexible(
+                child: Text(
+                  'Aportación Mensual',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8.0),
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10.0, vertical: 4.0),
@@ -780,20 +898,31 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Distribución de Activos',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
+              const Flexible(
+                child: Text(
+                  'Distribución de Activos',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              Text(
-                '${provider.allocationEquityPct.toStringAsFixed(0)}% RV  /  ${provider.allocationGoldPct.toStringAsFixed(0)}% Oro',
-                style: const TextStyle(
-                  color: AppColors.aiAccent,
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 8.0),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${provider.allocationEquityPct.toStringAsFixed(0)}% RV  /  ${provider.allocationGoldPct.toStringAsFixed(0)}% Oro',
+                    style: const TextStyle(
+                      color: AppColors.aiAccent,
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -912,70 +1041,96 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Capital Aportado',
-                            style: TextStyle(
-                              color: AppColors.textTertiary,
-                              fontSize: 11.0,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Capital Aportado',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 11.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Text(
-                            '${simulation.totalInvested.toStringAsFixed(0)} €',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(height: 2.0),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${simulation.totalInvested.toStringAsFixed(0)} €',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Valor Estimado',
-                            style: TextStyle(
-                              color: AppColors.textTertiary,
-                              fontSize: 11.0,
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Valor Estimado',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 11.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Text(
-                            '${simulation.currentValue.toStringAsFixed(2)} €',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(height: 2.0),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${simulation.currentValue.toStringAsFixed(2)} €',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'Rentabilidad',
-                            style: TextStyle(
-                              color: AppColors.textTertiary,
-                              fontSize: 11.0,
+                      const SizedBox(width: 8.0),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Rentabilidad',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textTertiary,
+                                fontSize: 11.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Text(
-                            '${simulation.isPnlPositive ? "+" : ""}${simulation.roiPct.toStringAsFixed(2)}%',
-                            style: TextStyle(
-                              color: simulation.isPnlPositive
-                                  ? AppColors.bullish
-                                  : AppColors.bearish,
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.w800,
+                            const SizedBox(height: 2.0),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${simulation.isPnlPositive ? "+" : ""}${simulation.roiPct.toStringAsFixed(2)}%',
+                                style: TextStyle(
+                                  color: simulation.isPnlPositive
+                                      ? AppColors.bullish
+                                      : AppColors.bearish,
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
