@@ -9,3 +9,6 @@ psycopg2-binary
 alembic
 celery
 redis
+numpy
+pandas
+scipy

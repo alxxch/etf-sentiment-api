@@ -13,6 +13,7 @@ from routers.assistant import router as assistant_router
 from routers.banking import router as banking_router
 from routers.fintech import router as fintech_router
 from routers.notifications import router as notifications_router
+from routers.analytics import router as analytics_router
 from scraper import get_ticker_data
 from tts_service import generate_speech
 
@@ -31,11 +32,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inclusión de routers: Fintech / DCA, Asistente Multimodal, Open Banking y Notificaciones
+# Inclusión de routers: Fintech / DCA, Asistente Multimodal, Open Banking, Notificaciones y Analytics
 app.include_router(fintech_router, prefix="/api/v1/fintech", tags=["Fintech & Portfolio"])
 app.include_router(assistant_router, prefix="/api/v1/assistant", tags=["Assistant & NLP"])
 app.include_router(banking_router, prefix="/api/v1/banking", tags=["Open Banking"])
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["Notifications & Alerts"])
+app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics & Predictive"])
 
 
 

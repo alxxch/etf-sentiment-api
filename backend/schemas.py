@@ -386,7 +386,88 @@ class NotificationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+# ============================================================================
+# Schemas de Simulación Monte Carlo — Fase 24 (Predictive Analytics)
+# ============================================================================
+
+class MonteCarloRequest(BaseModel):
+    """Parámetros de entrada para la simulación Monte Carlo sobre datos históricos de ETFs."""
+
+    ticker: str = Field(
+        default="VWCE.DE",
+        description="Símbolo del ETF sobre el que se proyecta la simulación",
+        examples=["VWCE.DE"],
+    )
+    horizon_days: int = Field(
+        default=1260,
+        ge=5,
+        le=7560,
+        description="Horizonte temporal en días hábiles a proyectar (por defecto 252 * 5 = 1 260 días)",
+        examples=[1260],
+    )
+    n_simulations: int = Field(
+        default=5000,
+        ge=100,
+        le=50000,
+        description="Número de trayectorias Monte Carlo (por defecto 5 000)",
+        examples=[5000],
+    )
+    initial_investment: float = Field(
+        default=10000.0,
+        ge=0.0,
+        description="Capital inicial a proyectar en EUR",
+        examples=[10000.0],
+    )
+    monthly_contribution: float = Field(
+        default=200.0,
+        ge=0.0,
+        description="Aportación mensual adicional en EUR (contribución DCA)",
+        examples=[200.0],
+    )
 
 
+class MonteCarloProjectionPoint(BaseModel):
+    """Punto de proyección para una banda percentil de la simulación Monte Carlo."""
 
+    day: int = Field(..., description="Índice del día proyectado desde el inicio (0 = hoy)")
+    value: float = Field(..., description="Valor proyectado de la cartera en EUR")
+
+
+class MonteCarloResponse(BaseModel):
+    """Respuesta de la simulación Monte Carlo con bandas P10, P50 y P90."""
+
+    ticker: str = Field(..., description="Símbolo del ETF analizado")
+    horizon_days: int = Field(..., description="Horizonte temporal de la proyección en días hábiles")
+    n_simulations: int = Field(..., description="Número de trayectorias simuladas")
+    initial_investment: float = Field(..., description="Capital inicial proyectado en EUR")
+    monthly_contribution: float = Field(..., description="Aportación mensual en EUR")
+
+    # Arrays de proyección para cada escenario (longitud = horizon_days + 1)
+    p10: List[float] = Field(
+        ...,
+        description="Escenario pesimista — Percentil 10: el 90 % de los escenarios supera este valor",
+    )
+    p50: List[float] = Field(
+        ...,
+        description="Escenario base — Percentil 50 (mediana): trayectoria central",
+    )
+    p90: List[float] = Field(
+        ...,
+        description="Escenario optimista — Percentil 90: solo el 10 % de los escenarios supera este valor",
+    )
+    days: List[int] = Field(
+        ...,
+        description="Índices de día correspondientes [0, 1, …, horizon_days]",
+    )
+
+    # Estadísticas del modelo calibrado con la serie histórica
+    mean_daily_return: float = Field(..., description="Retorno medio diario del activo (µ) estimado")
+    std_daily_return: float = Field(..., description="Volatilidad diaria del activo (σ) estimada")
+    annualized_return: float = Field(..., description="Retorno anualizado estimado")
+    annualized_vol: float = Field(..., description="Volatilidad anualizada estimada")
+
+    # Valores finales resumidos (último día)
+    final_p10: float = Field(..., description="Valor final proyectado en el escenario pesimista (P10)")
+    final_p50: float = Field(..., description="Valor final proyectado en el escenario base (P50)")
+    final_p90: float = Field(..., description="Valor final proyectado en el escenario optimista (P90)")
 
