@@ -1,0 +1,2 @@
+# GGML Quantized Whisper Model Placeholder
+# Replace with actual ggml-tiny.bin / ggml-base.bin (e.g. from HuggingFace ggerganov/whisper.cpp)

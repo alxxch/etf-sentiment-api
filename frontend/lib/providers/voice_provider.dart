@@ -3,26 +3,27 @@ import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import '../services/api_service.dart';
+import '../services/audio_capture_service.dart';
+import '../services/whisper_service.dart';
 import 'portfolio_provider.dart';
 
-/// Alias del proveedor para la Fase 12
+/// Alias del proveedor para compatibilidad con fases previas
 typedef VoiceAssistantProvider = VoiceProvider;
 
-/// Estados del ciclo de vida del asistente conversacional por voz
+/// Estados del ciclo de vida del asistente conversacional por voz con Edge STT Local (Fase 22).
 enum VoiceState {
   idle,
   listening,
-  processing,
-  speaking,
+  inferringLocal, // Transcribiendo audio en el dispositivo con Whisper AI
+  processing,     // Enviando texto reconocido al LLM / Backend FastAPI
+  speaking,       // Reproduciendo síntesis de voz (TTS)
   error,
 }
 
 class VoiceProvider extends ChangeNotifier {
-  final SpeechToText _speechToText;
+  final AudioCaptureService _audioCaptureService;
+  final WhisperService _whisperService;
   final ApiService _apiService;
   AudioPlayer? _audioPlayer;
   PortfolioProvider? _portfolioProvider;
@@ -37,18 +38,21 @@ class VoiceProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isInitialized = false;
   double _soundLevel = 0.0;
+  String? _lastRecordedWavPath;
 
   /// Callback opcional invocado al ejecutar una mutación financiera
   void Function(String actionType, Map<String, dynamic> dataPayload)?
       onActionExecuted;
 
   VoiceProvider({
-    SpeechToText? speechToText,
+    AudioCaptureService? audioCaptureService,
+    WhisperService? whisperService,
     ApiService? apiService,
     AudioPlayer? audioPlayer,
     PortfolioProvider? portfolioProvider,
     this.onActionExecuted,
-  })  : _speechToText = speechToText ?? SpeechToText(),
+  })  : _audioCaptureService = audioCaptureService ?? AudioCaptureService(),
+        _whisperService = whisperService ?? WhisperService(),
         _apiService = apiService ?? ApiService() {
     _audioPlayer = audioPlayer;
     _portfolioProvider = portfolioProvider;
@@ -80,7 +84,7 @@ class VoiceProvider extends ChangeNotifier {
     _portfolioProvider = provider;
   }
 
-  // Getters
+  // Getters de estado
   VoiceState get state => _state;
   String get transcribedText => _transcribedText;
   String get assistantResponse => _assistantResponse;
@@ -89,14 +93,16 @@ class VoiceProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isInitialized => _isInitialized;
   double get soundLevel => _soundLevel;
+  String? get lastRecordedWavPath => _lastRecordedWavPath;
 
   bool get isIdle => _state == VoiceState.idle;
   bool get isListening => _state == VoiceState.listening;
+  bool get isInferringLocal => _state == VoiceState.inferringLocal;
   bool get isProcessing => _state == VoiceState.processing;
   bool get isSpeaking => _state == VoiceState.speaking;
   bool get hasError => _state == VoiceState.error;
 
-  /// Inicializa el motor Speech-to-Text y verifica permisos del sistema
+  /// Inicializa el motor de captura y verifica permisos del sistema
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
@@ -112,25 +118,25 @@ class VoiceProvider extends ChangeNotifier {
         }
       }
 
-      final available = await _speechToText.initialize(
-        onError: _handleSpeechError,
-        onStatus: _handleSpeechStatus,
-        debugLogging: kDebugMode,
-      );
-
-      _isInitialized = available;
-      if (!available) {
+      final hasRecordPerm = await _audioCaptureService.hasPermission();
+      _isInitialized = hasRecordPerm;
+      if (!hasRecordPerm) {
         _errorMessage =
-            'El reconocimiento de voz no está disponible en este dispositivo.';
+            'El permiso de captura de audio no está disponible en este dispositivo.';
         _state = VoiceState.error;
       } else {
         _errorMessage = null;
+        // Pre-carga asíncrona del modelo Whisper
+        _whisperService.prepareModelFile().catchError((e) {
+          debugPrint('[VoiceProvider] Inicialización preliminar del modelo Whisper: $e');
+          return '';
+        });
       }
       notifyListeners();
-      return available;
+      return hasRecordPerm;
     } catch (e) {
       _isInitialized = false;
-      _errorMessage = 'Error inicializando reconocimiento de voz: $e';
+      _errorMessage = 'Error inicializando motor de audio: $e';
       _state = VoiceState.error;
       notifyListeners();
       return false;
@@ -148,7 +154,7 @@ class VoiceProvider extends ChangeNotifier {
     }
   }
 
-  /// Comienza a capturar audio del micrófono
+  /// Inicia la captura de audio crudo en WAV 16kHz mono (Transición a listening)
   Future<void> startListening() async {
     // Si estaba hablando, detener audio previo
     if (_state == VoiceState.speaking) {
@@ -167,21 +173,7 @@ class VoiceProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final listenOptions = SpeechListenOptions(
-        listenMode: ListenMode.dictation,
-        cancelOnError: false,
-        partialResults: true,
-        autoPunctuation: true,
-      );
-
-      await _speechToText.listen(
-        onResult: _handleSpeechResult,
-        listenOptions: listenOptions,
-        onSoundLevelChange: (level) {
-          _soundLevel = level;
-          notifyListeners();
-        },
-      );
+      _lastRecordedWavPath = await _audioCaptureService.startRecording();
     } catch (e) {
       _errorMessage = 'Error al iniciar captura de audio: $e';
       _state = VoiceState.error;
@@ -189,10 +181,29 @@ class VoiceProvider extends ChangeNotifier {
     }
   }
 
-  /// Detiene la escucha y envía la consulta al backend (Fase 12: Bucle Multimodal)
+  /// Detiene la grabación WAV, ejecuta Edge STT local con Whisper (inferringLocal)
+  /// y envía el texto reconocido al backend FastAPI (processing).
   Future<void> stopListening() async {
-    if (_speechToText.isListening) {
-      await _speechToText.stop();
+    String? wavPath = _lastRecordedWavPath;
+    if (_audioCaptureService.isRecording) {
+      wavPath = await _audioCaptureService.stopRecording();
+      _lastRecordedWavPath = wavPath;
+    }
+
+    // 1. Inferencia Local Edge STT con Whisper si hay audio grabado
+    if (_transcribedText.trim().isEmpty && wavPath != null && wavPath.isNotEmpty) {
+      _state = VoiceState.inferringLocal;
+      notifyListeners();
+
+      try {
+        debugPrint('🧠 [VoiceProvider] Ejecutando transcripción local con Whisper AI en: $wavPath');
+        final recognized = await _whisperService.transcribeAudio(wavPath);
+        _transcribedText = recognized.trim();
+        debugPrint('🧠 [VoiceProvider] Texto reconocido por Whisper: "$_transcribedText"');
+      } catch (e) {
+        debugPrint('[VoiceProvider] Excepción durante inferencia Whisper: $e');
+        _errorMessage = 'Error en reconocimiento local: $e';
+      }
     }
 
     final capturedText = _transcribedText.trim();
@@ -203,6 +214,7 @@ class VoiceProvider extends ChangeNotifier {
       return;
     }
 
+    // 2. Transición a processing y envío de prompt al backend FastAPI
     _soundLevel = 0.0;
     _state = VoiceState.processing;
     notifyListeners();
@@ -224,7 +236,7 @@ class VoiceProvider extends ChangeNotifier {
       debugPrint(
           '⚡ [VoiceProvider] Respuesta recibida: action=$actType, audioLen=${audioBase64?.length ?? 0}');
 
-      // 1. Sincronización reactiva del estado financiero si hay mutación
+      // Sincronización reactiva del estado financiero si hay mutación
       if (_portfolioProvider != null) {
         await _portfolioProvider!.applyAssistantPayload(actType, payload);
       }
@@ -232,7 +244,7 @@ class VoiceProvider extends ChangeNotifier {
         onActionExecuted!(actType, payload);
       }
 
-      // 2. Reproducción de audio con ElevenLabs (t9LRTh3y1ioN00e9wsNh)
+      // Reproducción de audio TTS (ElevenLabs)
       if (audioBase64 != null && audioBase64.isNotEmpty) {
         _state = VoiceState.speaking;
         notifyListeners();
@@ -249,7 +261,7 @@ class VoiceProvider extends ChangeNotifier {
           notifyListeners();
         }
       } else {
-        // Fallback sin audio (ElevenLabs cuota o offline): mantener texto visible
+        // Fallback sin audio: mantener respuesta visible
         _state = VoiceState.speaking;
         notifyListeners();
         Future.delayed(const Duration(seconds: 4), () {
@@ -276,11 +288,10 @@ class VoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Cancela la captura inmediatamente y descarta el buffer
+  /// Cancela la captura inmediatamente y descarta el buffer de audio
   Future<void> cancelListening() async {
-    if (_speechToText.isListening) {
-      await _speechToText.cancel();
-    }
+    await _audioCaptureService.cancelRecording();
+    _lastRecordedWavPath = null;
     if (_state == VoiceState.speaking) {
       await stopSpeaking();
     }
@@ -290,39 +301,11 @@ class VoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _handleSpeechResult(SpeechRecognitionResult result) {
-    _transcribedText = result.recognizedWords;
-    notifyListeners();
-
-    if (result.finalResult) {
-      stopListening();
-    }
-  }
-
-  void _handleSpeechStatus(String status) {
-    debugPrint('🎙️ [VoiceProvider] Estado STT: $status');
-    if (status == 'notListening' && _state == VoiceState.listening) {
-      stopListening();
-    }
-  }
-
-  void _handleSpeechError(SpeechRecognitionError error) {
-    debugPrint('⚠️ [VoiceProvider] Error STT: ${error.errorMsg} (${error.permanent})');
-    if (error.errorMsg == 'error_no_match' ||
-        error.errorMsg == 'error_speech_timeout') {
-      _state = VoiceState.idle;
-      _soundLevel = 0.0;
-    } else {
-      _errorMessage = error.errorMsg;
-      _state = VoiceState.error;
-    }
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     _playerCompleteSubscription?.cancel();
     _audioPlayer?.dispose();
+    _audioCaptureService.dispose();
     super.dispose();
   }
 

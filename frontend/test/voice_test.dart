@@ -10,6 +10,8 @@ import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('VoiceProvider Unit Tests', () {
     test('Initial state is idle and has empty text', () {
       final provider = VoiceProvider();
@@ -24,7 +26,7 @@ void main() {
       expect(provider.errorMessage, isNull);
     });
 
-    test('State changes and transcribed text updates correctly', () {
+    test('State changes and transcribed text updates correctly', () async {
       final provider = VoiceProvider();
 
       provider.setStateForTesting(VoiceState.listening);
@@ -35,7 +37,7 @@ void main() {
       expect(
           provider.transcribedText, 'Simula una aportación de 100 euros al oro');
 
-      provider.cancelListening();
+      await provider.cancelListening();
       expect(provider.isIdle, isTrue);
       expect(provider.transcribedText, isEmpty);
     });

@@ -150,9 +150,11 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
     final voiceState =
         widget.customVoiceState ?? voiceProvider?.state ?? VoiceState.idle;
     final isVoiceListening = voiceState == VoiceState.listening;
+    final isVoiceInferringLocal = voiceState == VoiceState.inferringLocal;
     final isVoiceProcessing = voiceState == VoiceState.processing;
     final isVoiceSpeaking = voiceState == VoiceState.speaking;
-    final isVoiceAttentive = isVoiceListening || isVoiceProcessing;
+    final isVoiceAttentive =
+        isVoiceListening || isVoiceInferringLocal || isVoiceProcessing;
 
     // Control de la animación de latido/pulso durante síntesis de voz (TTS)
     if (isVoiceSpeaking) {
@@ -472,7 +474,9 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
                                   ? AppColors.bullish
                                   : (isVoiceListening
                                       ? AppColors.aiAccent
-                                      : AppColors.gold),
+                                      : (isVoiceInferringLocal
+                                          ? AppColors.aiAccent
+                                          : AppColors.gold)),
                               size: 13.0,
                             ),
                             const SizedBox(width: 6.0),
@@ -481,13 +485,17 @@ class _SpatialPortfolioWidgetState extends State<SpatialPortfolioWidget>
                                   ? 'ASISTENTE HABLANDO • PULSO TTS ACTIVO'
                                   : (isVoiceListening
                                       ? 'ATENCIÓN CONVERSACIONAL • ZOOM 28°'
-                                      : 'PROCESANDO CONSULTA...'),
+                                      : (isVoiceInferringLocal
+                                          ? 'TRANSCRIBIENDO (WHISPER LOCAL)...'
+                                          : 'PROCESANDO CONSULTA...')),
                               style: TextStyle(
                                 color: isVoiceSpeaking
                                     ? AppColors.bullish
                                     : (isVoiceListening
                                         ? AppColors.aiAccent
-                                        : AppColors.gold),
+                                        : (isVoiceInferringLocal
+                                            ? AppColors.aiAccent
+                                            : AppColors.gold)),
                                 fontSize: 10.0,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.6,

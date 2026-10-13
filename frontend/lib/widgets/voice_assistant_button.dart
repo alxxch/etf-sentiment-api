@@ -56,11 +56,12 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
         } catch (_) {}
 
         final isListening = voice.isListening;
+        final isInferringLocal = voice.isInferringLocal;
         final isProcessing = voice.isProcessing;
         final isSpeaking = voice.isSpeaking;
         final hasError = voice.hasError;
 
-        final isAnimatedState = isListening || isSpeaking;
+        final isAnimatedState = isListening || isInferringLocal || isSpeaking;
 
         if (isAnimatedState) {
           if (!_pulseController.isAnimating) {
@@ -74,7 +75,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
         }
 
         final showOverlayCard =
-            isListening || isProcessing || isSpeaking || hasError;
+            isListening || isInferringLocal || isProcessing || isSpeaking || hasError;
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -90,6 +91,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
             _buildMicrophoneFab(
               voice,
               isListening,
+              isInferringLocal,
               isProcessing,
               isSpeaking,
               hasError,
@@ -243,6 +245,40 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                 ),
               ),
             ],
+          ] else if (voice.isInferringLocal) ...[
+            const Row(
+              children: [
+                SizedBox(
+                  width: 14.0,
+                  height: 14.0,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.0,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.aiAccent),
+                  ),
+                ),
+                SizedBox(width: 10.0),
+                Expanded(
+                  child: Text(
+                    'Transcribiendo con Whisper Edge STT...',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            const Text(
+              'Inferencia local en el dispositivo (sin nube)',
+              style: TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ] else if (voice.isProcessing) ...[
             const Row(
               children: [
@@ -308,6 +344,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
   Widget _buildMicrophoneFab(
     VoiceProvider voice,
     bool isListening,
+    bool isInferringLocal,
     bool isProcessing,
     bool isSpeaking,
     bool hasError,
@@ -315,7 +352,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
-        final isPulsing = isListening || isSpeaking;
+        final isPulsing = isListening || isInferringLocal || isSpeaking;
         final pulseScale =
             isPulsing ? 1.0 + (_pulseAnimation.value * 0.18) : 1.0;
         final pulseGlow = isPulsing ? _pulseAnimation.value : 0.0;
@@ -343,9 +380,17 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                 ),
               ),
 
-            // Botón principal
+            // Botón principal con soporte Push-to-Talk y Toggle
             GestureDetector(
               onTap: () => _onButtonTap(voice),
+              onLongPressStart: (_) {
+                HapticFeedback.heavyImpact();
+                voice.startListening();
+              },
+              onLongPressEnd: (_) {
+                HapticFeedback.mediumImpact();
+                voice.stopListening();
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 56.0,
@@ -354,7 +399,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                   shape: BoxShape.circle,
                   color: isSpeaking
                       ? AppColors.bullish
-                      : (isListening
+                      : (isListening || isInferringLocal
                           ? AppColors.aiAccent
                           : (hasError
                               ? AppColors.bearishSoft
@@ -362,12 +407,12 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                   border: Border.all(
                     color: isSpeaking
                         ? AppColors.textPrimary
-                        : (isListening
+                        : (isListening || isInferringLocal
                             ? AppColors.textPrimary
                             : (hasError
                                 ? AppColors.bearish
                                 : AppColors.cardBorder)),
-                    width: (isListening || isSpeaking) ? 2.0 : 1.2,
+                    width: (isListening || isInferringLocal || isSpeaking) ? 2.0 : 1.2,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -375,7 +420,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                       blurRadius: 10.0,
                       offset: const Offset(0, 4),
                     ),
-                    if (isListening)
+                    if (isListening || isInferringLocal)
                       BoxShadow(
                         color: AppColors.aiAccent.withValues(alpha: 0.6),
                         blurRadius: 16.0,
@@ -390,7 +435,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
                   ],
                 ),
                 child: Center(
-                  child: isProcessing
+                  child: (isProcessing || isInferringLocal)
                       ? const SizedBox(
                           width: 22.0,
                           height: 22.0,
@@ -425,6 +470,16 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
   }
 
   Widget _buildStatusIndicator(VoiceProvider voice) {
+    if (voice.isInferringLocal) {
+      return Container(
+        width: 8.0,
+        height: 8.0,
+        decoration: const BoxDecoration(
+          color: AppColors.aiAccent,
+          shape: BoxShape.circle,
+        ),
+      );
+    }
     if (voice.isProcessing) {
       return Container(
         width: 8.0,
@@ -493,6 +548,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
 
   String _getStatusTitle(VoiceProvider voice) {
     if (voice.isSpeaking) return 'ASISTENTE RESPONDIENDO...';
+    if (voice.isInferringLocal) return 'TRANSCRIBIENDO (WHISPER LOCAL)...';
     if (voice.isProcessing) return 'PROCESANDO...';
     if (voice.hasError) return 'ERROR DE AUDIO';
     return 'ESCUCHANDO...';
@@ -500,6 +556,7 @@ class _VoiceAssistantButtonState extends State<VoiceAssistantButton>
 
   Color _getStatusColor(VoiceProvider voice) {
     if (voice.isSpeaking) return AppColors.bullish;
+    if (voice.isInferringLocal) return AppColors.aiAccent;
     if (voice.isProcessing) return AppColors.gold;
     if (voice.hasError) return AppColors.bearish;
     return AppColors.aiAccent;
