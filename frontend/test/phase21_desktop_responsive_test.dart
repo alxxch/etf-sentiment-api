@@ -190,6 +190,21 @@ List<EtfHistoryEntry> _createMockHistory(String ticker) {
 
   final etfProvider = EtfProvider(apiService: apiService);
   etfProvider.setEtfDataForTesting(
+    'SWDA.L',
+    _createMockEtf('SWDA.L', 105.20, 0.85, 75),
+    _createMockHistory('SWDA.L'),
+  );
+  etfProvider.setEtfDataForTesting(
+    'CSPX.L',
+    _createMockEtf('CSPX.L', 580.40, 1.10, 80),
+    _createMockHistory('CSPX.L'),
+  );
+  etfProvider.setEtfDataForTesting(
+    'VWRA.L',
+    _createMockEtf('VWRA.L', 132.80, 0.95, 78),
+    _createMockHistory('VWRA.L'),
+  );
+  etfProvider.setEtfDataForTesting(
     'VWCE.DE',
     _createMockEtf('VWCE.DE', 173.56, 1.25, 78),
     _createMockHistory('VWCE.DE'),

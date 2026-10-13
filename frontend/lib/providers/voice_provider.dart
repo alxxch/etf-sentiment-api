@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../services/api_service.dart';
 import '../services/audio_capture_service.dart';
 import '../services/whisper_service.dart';
@@ -113,38 +112,22 @@ class VoiceProvider extends ChangeNotifier {
   bool get hasMonteCarloResult =>
       _monteCarloResult != null && _monteCarloResult!.hasData;
 
-  /// Inicializa el motor de captura y verifica permisos del sistema
+  /// Inicializa el motor de captura y precarga el modelo Whisper
   Future<bool> initialize() async {
     if (_isInitialized) return true;
 
     try {
-      if (!kIsWeb) {
-        final micStatus = await Permission.microphone.request();
-        if (micStatus.isPermanentlyDenied || micStatus.isDenied) {
-          _errorMessage =
-              'Permiso de micrófono denegado. Habilítalo en los ajustes del sistema.';
-          _state = VoiceState.error;
-          notifyListeners();
-          return false;
-        }
-      }
+      _isInitialized = true;
+      _errorMessage = null;
 
-      final hasRecordPerm = await _audioCaptureService.hasPermission();
-      _isInitialized = hasRecordPerm;
-      if (!hasRecordPerm) {
-        _errorMessage =
-            'El permiso de captura de audio no está disponible en este dispositivo.';
-        _state = VoiceState.error;
-      } else {
-        _errorMessage = null;
-        // Pre-carga asíncrona del modelo Whisper
-        _whisperService.prepareModelFile().catchError((e) {
-          debugPrint('[VoiceProvider] Inicialización preliminar del modelo Whisper: $e');
-          return '';
-        });
-      }
+      // Pre-carga asíncrona del modelo Whisper
+      _whisperService.prepareModelFile().catchError((e) {
+        debugPrint('[VoiceProvider] Inicialización preliminar del modelo Whisper: $e');
+        return '';
+      });
+
       notifyListeners();
-      return hasRecordPerm;
+      return true;
     } catch (e) {
       _isInitialized = false;
       _errorMessage = 'Error inicializando motor de audio: $e';

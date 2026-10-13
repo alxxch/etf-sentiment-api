@@ -23,6 +23,9 @@ Widget createTestApp({required Widget child}) {
   final apiService = ApiService(client: mockClient);
 
   final testEtfProvider = EtfProvider(apiService: apiService);
+  testEtfProvider.setEtfDataForTesting('SWDA.L', EtfData.mocks[0]);
+  testEtfProvider.setEtfDataForTesting('CSPX.L', EtfData.mocks[1]);
+  testEtfProvider.setEtfDataForTesting('VWRA.L', EtfData.mocks[2]);
   testEtfProvider.setEtfDataForTesting('VWCE.DE', EtfData.mocks[0]);
   testEtfProvider.setEtfDataForTesting('EUNL.DE', EtfData.mocks[1]);
   testEtfProvider.setEtfDataForTesting('8PSG.DE', EtfData.mocks[2]);

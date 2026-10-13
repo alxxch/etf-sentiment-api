@@ -43,11 +43,6 @@ class AudioCaptureService {
       return _currentRecordingPath!;
     }
 
-    final hasPerm = await hasPermission();
-    if (!hasPerm) {
-      throw Exception('Permiso de grabación de micrófono no concedido.');
-    }
-
     String targetPath = customPath ?? '';
     if (targetPath.isEmpty) {
       final tempDir = await getTemporaryDirectory();

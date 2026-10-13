@@ -7,6 +7,7 @@ import '../providers/voice_provider.dart';
 import '../services/audio_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/ai_summary_widget.dart';
+import '../widgets/category_selector.dart';
 import '../widgets/custom_title_bar.dart';
 import '../widgets/etf_card_widget.dart';
 import '../widgets/glass_card.dart';
@@ -266,9 +267,28 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMarketTab(EtfProvider provider, {required bool isDesktop}) {
     return SafeArea(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header estilo Apple Finance
           _buildHeader(provider),
+
+          // Selector horizontal de Categorías (Pills / Chips)
+          CategorySelector(
+            categories: EtfProvider.categories.keys.toList(),
+            selectedCategory: provider.selectedCategory,
+            onCategorySelected: (category) {
+              if (provider.selectedCategory != category) {
+                context.read<AudioService>().stop();
+                provider.selectCategory(category);
+                if (_pageController.hasClients) {
+                  _pageController.jumpToPage(0);
+                }
+              }
+            },
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 2.0),
+          ),
+
+          const SizedBox(height: 6.0),
 
           // Selector horizontal de Tickers (Pills / Segmented Control) - solo en móvil
           if (!isDesktop) _buildTickerSelector(provider),
@@ -292,11 +312,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'MARKET SENTIMENT',
                   style: TextStyle(
                     color: AppColors.textTertiary,
@@ -305,10 +325,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     letterSpacing: 1.5,
                   ),
                 ),
-                SizedBox(height: 2.0),
+                const SizedBox(height: 2.0),
                 Text(
-                  'ETF Dashboard',
-                  style: TextStyle(
+                  '${provider.selectedCategory} Dashboard',
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 26.0,
                     fontWeight: FontWeight.w800,
@@ -418,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      ticker.replaceAll('.DE', ''),
+                      ticker.replaceAll('.DE', '').replaceAll('.L', ''),
                       style: TextStyle(
                         color: isSelected
                             ? AppColors.textPrimary
@@ -545,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final activeTicker = (provider.selectedIndex < provider.tickers.length)
         ? provider.tickers[provider.selectedIndex]
-        : (provider.tickers.isNotEmpty ? provider.tickers.first : 'VWCE.DE');
+        : (provider.tickers.isNotEmpty ? provider.tickers.first : 'SWDA.L');
 
     final activeEtf = provider.allEtfs.firstWhere(
       (item) => item.ticker == activeTicker,
@@ -553,8 +573,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ticker: activeTicker,
         currentPrice: 0.0,
         changePercent: 0.0,
+        currency: activeTicker.endsWith('.DE') ? 'EUR' : 'USD',
         sentimentScore: 50,
-        aiSummary: 'Cargando datos para $activeTicker...',
+        aiSummary: provider.isTickerLoading(activeTicker)
+            ? 'Cargando datos para $activeTicker...'
+            : 'Sin datos disponibles para $activeTicker.',
       ),
     );
 
@@ -589,12 +612,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: provider.tickers.length,
                   itemBuilder: (context, index) {
                     final ticker = provider.tickers[index];
+                    final isCardLoading = provider.isTickerLoading(ticker);
                     final etf = provider.allEtfs.firstWhere(
                       (item) => item.ticker == ticker,
                       orElse: () => EtfData(
                         ticker: ticker,
                         currentPrice: 0.0,
                         changePercent: 0.0,
+                        currency: ticker.endsWith('.DE') ? 'EUR' : 'USD',
                         sentimentScore: 50,
                         aiSummary: 'Cargando datos para $ticker...',
                       ),
@@ -613,7 +638,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: EdgeInsets.zero,
                       child: Stack(
                         children: [
-                          EtfCardWidget(data: etf),
+                          EtfCardWidget(
+                            data: etf,
+                            isLoading: isCardLoading,
+                          ),
                           if (isSelected)
                             Positioned(
                               top: 12,
@@ -797,12 +825,14 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: provider.tickers.length,
         itemBuilder: (context, index) {
           final ticker = provider.tickers[index];
+          final isCardLoading = provider.isTickerLoading(ticker);
           final etf = provider.allEtfs.firstWhere(
             (item) => item.ticker == ticker,
             orElse: () => EtfData(
               ticker: ticker,
               currentPrice: 0.0,
               changePercent: 0.0,
+              currency: ticker.endsWith('.DE') ? 'EUR' : 'USD',
               sentimentScore: 50,
               aiSummary: 'Cargando datos para $ticker...',
             ),
@@ -818,7 +848,10 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 // 1. Tarjeta principal de Cotización y Variación en tiempo real
-                EtfCardWidget(data: etf),
+                EtfCardWidget(
+                  data: etf,
+                  isLoading: isCardLoading,
+                ),
 
                 // Fase 26: Panel del Comité de IA si hay debate activo
                 if (voice.hasCommitteeDebate) ...[
